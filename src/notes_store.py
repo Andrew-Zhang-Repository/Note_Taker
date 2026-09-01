@@ -3,6 +3,8 @@ import tempfile
 import json
 import re
 from pathlib import Path
+import uuid
+
 class note_store:
 
     def __init__(self):
@@ -36,7 +38,7 @@ class note_store:
                 pass
 
 
-    def type_ops(self,type_name):
+    def create_note(self,type_name):
         type_name = self.input_sanitization(type_name)
 
         if not type_name:
@@ -56,6 +58,68 @@ class note_store:
         }
         
         self.atomic_save(initial_data, new_file)
+
+        return True
+
+
+    def read_note(self,input_name):
+
+        file_location = self.types_dir / f"{input_name}.json"
+        with file_location.open('r', encoding='utf-8') as file:
+            data = json.load(file)
+
+        return data["notes"]
+
+    def add_note(self, type_name, note_title, note_body):
+
+        file_location = self.types_dir / f"{type_name}.json"
+        with file_location.open('r', encoding='utf-8') as file:
+            data = json.load(file)
+
+        insertion = {
+            "id": str(uuid.uuid4()),
+            "title": note_title,
+            "note_body": note_body
+        }
+
+        data["notes"].append(insertion)
+
+        self.atomic_save(insertion,file_location)
+        
+    def delete_note(self,delete_id,type_name):
+        
+        file_location = self.types_dir / f"{type_name}.json"
+        with file_location.open('r', encoding='utf-8') as file:
+            data = json.load(file)
+
+        for i in data["notes"]:
+            if i["id"] == delete_id:
+                data["notes"].pop(i)
+                break
+
+        self.atomic_save(data,file_location)
+
+    def update_note(self,id,type_name,new_text):
+
+        file_location = self.types_dir / f"{type_name}.json"
+        with file_location.open('r', encoding='utf-8') as file:
+            data = json.load(file)
+
+        for i in data["notes"]:
+            if i["id"] == id:
+                data["notes"][i]["note_body"] = new_text
+                break
+
+        self.atomic_save(data,file_location)
+
+        
+
+
+
+
+
+        
+
 
         
      
