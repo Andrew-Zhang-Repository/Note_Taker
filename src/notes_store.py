@@ -1,0 +1,69 @@
+import os
+import tempfile
+import json
+import re
+from pathlib import Path
+class note_store:
+
+    def __init__(self):
+        self.path = self.path = Path(os.getenv('APPDATA')) / 'Note_Taker'
+        self.config_path = self.path / "default_config.json"
+        self.types_dir = self.path / "types" 
+        self.config = {}
+
+    def atomic_save(self,data, target_path):
+
+        tmp_path = target_path.with_suffix(".tmp")
+        with open(tmp_path, "w", encoding="utf-8") as file:
+            json.dump(data, file)
+
+        os.replace(tmp_path, target_path)
+
+    def input_sanitization(self, str_input):
+
+        str_clean = str_input.strip()
+        str_clean = re.sub(r'[\\/:*?"<>|]', '_', str_clean)
+
+        return str_clean[:64]
+
+    def registry_management(self):
+
+        if self.config_path.exists():
+            try:
+                with open(self.config_path, "r", encoding="utf-8") as f:
+                    dict = self.json_dict = json.load(f)
+            except (json.JSONDecodeError, IOError):
+                pass
+
+
+    def type_ops(self,type_name):
+        type_name = self.input_sanitization(type_name)
+
+        if not type_name:
+            return False
+
+        for i in self.config["types"]:
+            if i == type_name:
+                return False
+
+        self.config["types"].append(type_name)
+        self.atomic_save(self.config, self.config_path)
+        new_file = self.types_dir / f"{type_name}.json"
+
+        initial_data = {
+            "name": type_name,
+            "notes": []
+        }
+        
+        self.atomic_save(initial_data, new_file)
+
+        
+     
+
+
+
+     
+
+
+
+
