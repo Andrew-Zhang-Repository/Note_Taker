@@ -107,7 +107,7 @@ class note_store:
 
         for i in data["notes"]:
             if i["id"] == id:
-                data["notes"][i]["note_body"] = new_text
+                i["note_body"] = new_text
                 break
 
         self.atomic_save(data,file_location)
