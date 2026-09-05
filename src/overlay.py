@@ -2,7 +2,7 @@ import tkinter as tk
 
 class OverlayWindow(tk.Tk):
 
-    EDGE_SIZE = 15
+    EDGE_SIZE = 4
 
     MIN_WIDTH = 200
     MIN_HEIGHT = 150
@@ -61,10 +61,19 @@ class OverlayWindow(tk.Tk):
 
         self.main_container = tk.Frame(self, bg="#1e1e1e")
         self.main_container.pack(fill=tk.BOTH, expand=True)
+
+
+        self.left_edge = tk.Frame(self.main_container, width=self.EDGE_SIZE, bg="#1e1e1e", cursor="size_we")
+        self.left_edge.pack(side=tk.LEFT, fill=tk.Y)
+        self._bind_resize_edge(self.left_edge, "w")
         
         self.left_edge = tk.Frame(self.main_container, width=self.EDGE_SIZE, bg="#1e1e1e")
         self.left_edge.pack(side=tk.LEFT, fill=tk.Y)
         self._bind_resize_edge(self.left_edge, "w")
+
+        self.right_edge = tk.Frame(self.main_container, width=self.EDGE_SIZE, bg="#1e1e1e", cursor="size_we")
+        self.right_edge.pack(side=tk.RIGHT, fill=tk.Y)
+        self._bind_resize_edge(self.right_edge, "e")
 
         self.right_edge = tk.Frame(self.main_container, width=self.EDGE_SIZE, bg="#1e1e1e")
         self.right_edge.pack(side=tk.RIGHT, fill=tk.Y)
@@ -74,6 +83,10 @@ class OverlayWindow(tk.Tk):
         self.inner_container.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
         self.top_edge = tk.Frame(self.inner_container, height=self.EDGE_SIZE, bg="#1e1e1e")
+        self.top_edge.pack(fill=tk.X, side=tk.TOP)
+        self._bind_resize_edge(self.top_edge, "n")
+
+        self.top_edge = tk.Frame(self.inner_container, height=self.EDGE_SIZE, bg="#1e1e1e", cursor="size_ns")
         self.top_edge.pack(fill=tk.X, side=tk.TOP)
         self._bind_resize_edge(self.top_edge, "n")
 
@@ -90,6 +103,9 @@ class OverlayWindow(tk.Tk):
    
 
         self.resize_frame = tk.Frame(self.inner_container, bg="#333333", height=10)
+        self.resize_frame.pack(fill=tk.X, side=tk.BOTTOM)
+
+        self.resize_frame = tk.Frame(self.inner_container, bg="#333333", height=self.EDGE_SIZE, cursor="size_ns")
         self.resize_frame.pack(fill=tk.X, side=tk.BOTTOM)
 
      
