@@ -13,6 +13,31 @@ class note_store:
         self.types_dir = self.path / "types" 
         self.config = {}
 
+        self.registry_management()
+
+
+    def registry_management(self):
+       
+        self.path.mkdir(parents=True, exist_ok=True)
+        self.types_dir.mkdir(parents=True, exist_ok=True)
+
+        if self.config_path.exists():
+            try:
+                with open(self.config_path, "r", encoding="utf-8") as f:
+                    self.config = json.load(f)
+            except (json.JSONDecodeError, IOError):
+                self.config = {}
+        
+        if not self.config or "types" not in self.config:
+            self.config = {
+                "types": ["General"]
+            }
+           
+            self.atomic_save(self.config, self.config_path)
+            
+            initial_data = {"name": "General", "notes": []}
+            self.atomic_save(initial_data, self.types_dir / "General.json")
+
     def atomic_save(self,data, target_path):
 
         tmp_path = target_path.with_suffix(".tmp")

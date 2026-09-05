@@ -2,6 +2,6 @@
   "settings": { "x": 100, "y": 100, "width": 500, "height": 350,
                 "opacity": 0.85, "font_size": 12, "font_family": "Consolas",
                 "font_color": "#FFFFFF", "bg_color": "#1e1e1e", "locked": false },
-  "types": ["Work", "Scripts", "Groceries"],
+  "types": [],
   "active_type": "Work"
 }

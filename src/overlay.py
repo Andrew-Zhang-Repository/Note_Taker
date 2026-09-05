@@ -1,4 +1,7 @@
 import tkinter as tk
+from tkinter import ttk
+from notes_store import note_store
+
 
 class OverlayWindow(tk.Tk):
 
@@ -215,6 +218,15 @@ class OverlayWindow(tk.Tk):
         frame.bind("<Button-1>", start)
         frame.bind("<B1-Motion>", drag)
         frame.bind("<ButtonRelease-1>", release)
+
+    def note_ui_management(self):
+        self.store = note_store()
+
+        if self.store.config.get("types"):
+            self.active_type = self.store.config["types"][0]
+            
+        self.current_notes = []
+        self.active_note_id = None
 
 
 
