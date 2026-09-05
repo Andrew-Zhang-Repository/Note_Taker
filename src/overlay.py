@@ -90,11 +90,11 @@ class OverlayWindow(tk.Tk):
         self.top_edge.pack(fill=tk.X, side=tk.TOP)
         self._bind_resize_edge(self.top_edge, "n")
 
-        self.title_frame = tk.Frame(self.inner_container, bg="#333333", height=25)
+        self.title_frame = tk.Frame(self.inner_container, bg="#1e1e1e", height=25)
         self.title_frame.pack(fill=tk.X, side=tk.TOP)
         self.title_frame.pack_propagate(False)
 
-        self.title_bar = tk.Frame(self.inner_container, bg="#333333", relief="raised", bd=0)
+        self.title_bar = tk.Frame(self.inner_container, bg="#1e1e1e", relief="raised", bd=0)
         self.title_bar.pack(fill="x", side="top")
 
 
@@ -102,24 +102,24 @@ class OverlayWindow(tk.Tk):
         self.title_frame.bind("<B1-Motion>", self.do_drag)
    
 
-        self.resize_frame = tk.Frame(self.inner_container, bg="#333333", height=10)
+        self.resize_frame = tk.Frame(self.inner_container, bg="#1e1e1e", height=10)
         self.resize_frame.pack(fill=tk.X, side=tk.BOTTOM)
 
-        self.resize_frame = tk.Frame(self.inner_container, bg="#333333", height=self.EDGE_SIZE, cursor="size_ns")
+        self.resize_frame = tk.Frame(self.inner_container, bg="#1e1e1e", height=self.EDGE_SIZE, cursor="size_ns")
         self.resize_frame.pack(fill=tk.X, side=tk.BOTTOM)
 
      
         # Bind resize events (bottom/southeast)
         self.resize_frame.bind("<Button-1>", self.start_resize)
         self.resize_frame.bind("<B1-Motion>", self.do_resize)
-        self.close_btn = tk.Button(self.title_bar, text=" X ", bg="#ff4c4c", fg="white", bd=0, command=self.destroy)
+        self.close_btn = tk.Button(self.title_bar, text=" X ", bg="#333333", fg="white", bd=0, command=self.destroy)
         self.close_btn.pack(side="right", padx=4)
         self.content_frame = tk.Frame(self.inner_container, bg="#252526") # Slightly lighter so you can see it
         self.content_frame.pack(expand=True, fill="both", padx=5, pady=5)
      
 
         # Bottom bar with font size controls
-        self.bottom_bar = tk.Frame(self.inner_container, bg="#333333", height=22)
+        self.bottom_bar = tk.Frame(self.inner_container, bg="#333333", height=30)
         self.bottom_bar.pack(fill=tk.X, side=tk.BOTTOM)
         self.bottom_bar.pack_propagate(False)
 
