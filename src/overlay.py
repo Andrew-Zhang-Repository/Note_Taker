@@ -131,6 +131,12 @@ class OverlayWindow(tk.Tk):
         font_controls.pack(side=tk.LEFT, padx=8)
 
 
+        self.save_btn = tk.Button(self.content_frame, text="Save Note", bg="#007ACC", fg="white", bd=0, command=self.save_note)
+        self.save_btn.pack(side=tk.BOTTOM, fill=tk.X, padx=5, pady=5)
+
+        self.notes_ui_management()
+
+
     def start_drag(self, event):
         """Initialize window drag operation."""
         self.drag_data["x"] = event.x
@@ -219,7 +225,7 @@ class OverlayWindow(tk.Tk):
         frame.bind("<B1-Motion>", drag)
         frame.bind("<ButtonRelease-1>", release)
 
-    def note_ui_management(self):
+    def notes_ui_management(self):
         self.store = note_store()
 
         if self.store.config.get("types"):
@@ -227,6 +233,72 @@ class OverlayWindow(tk.Tk):
             
         self.current_notes = []
         self.active_note_id = None
+
+        self.current_notes = []
+        self.active_note_id = None
+
+        top_bar = tk.Frame(self.content_frame, bg="#252526")
+        top_bar.pack(fill=tk.X, pady=5)
+
+        self.type_combo = ttk.Combobox(top_bar, values=self.store.config.get("types", []), state="readonly")
+        self.type_combo.set(self.active_type)
+        self.type_combo.pack(side=tk.LEFT, padx=5)
+        self.type_combo.bind("<<ComboboxSelected>>", self.on_type_change)
+
+        new_btn = tk.Button(top_bar, text="+ New Note", bg="#333333", fg="white", bd=0, command=self.create_new_note)
+        new_btn.pack(side=tk.RIGHT, padx=5)
+
+        self.note_listbox = tk.Listbox(self.content_frame, height=5, bg="#1e1e1e", fg="white", bd=0)
+        self.note_listbox.pack(fill=tk.X, padx=5, pady=5)
+        self.note_listbox.bind("<<ListboxSelect>>", self.on_note_select)
+
+        self.editor = tk.Text(self.content_frame, bg="#1e1e1e", fg="white", bd=0, wrap=tk.WORD)
+        self.editor.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        self.save_btn = tk.Button(self.content_frame, text="Save Note", bg="#007ACC", fg="white", bd=0, command=self.save_note)
+        self.save_btn.pack(pady=5, fill=tk.X, padx=5)
+
+        self.refresh_note_list()
+
+    def refresh_note_list(self):
+   
+        self.note_listbox.delete(0, tk.END) 
+        self.current_notes = self.store.read_note(self.active_type)
+
+        for note in self.current_notes:
+            self.note_listbox.insert(tk.END, note["title"])
+
+
+    def on_type_change(self, event):
+        self.active_type = self.type_combo.get()
+        self.editor.delete("1.0", tk.END) 
+        self.active_note_id = None
+        self.refresh_note_list()
+
+    def create_new_note(self):
+        self.store.add_note(self.active_type, "Untitled Note", "")
+        self.refresh_note_list()
+
+    def on_note_select(self, event):
+        selection = self.note_listbox.curselection()
+        if not selection:
+            return
+            
+        index = selection[0]
+        selected_note = self.current_notes[index]
+        self.active_note_id = selected_note["id"]
+        
+        self.editor.delete("1.0", tk.END)
+        self.editor.insert(tk.END, selected_note["note_body"])
+
+    def save_note(self):
+        if not self.active_note_id:
+            return
+            
+        new_text = self.editor.get("1.0", tk.END).strip()
+        self.store.update_note(self.active_note_id, self.active_type, new_text)
+        self.save_btn.config(text="Saved!")
+        self.after(2000, lambda: self.save_btn.config(text="Save Note"))
 
 
 

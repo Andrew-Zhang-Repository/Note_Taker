@@ -8,9 +8,18 @@ import uuid
 class note_store:
 
     def __init__(self):
+
+
+        current_folder = Path(__file__).parent
+        self.path = current_folder / 'Local_Data'
+        
+        self.config_path = self.path / "default_config.json"
+        self.types_dir = self.path / "types"
+        """
         self.path = self.path = Path(os.getenv('APPDATA')) / 'Note_Taker'
         self.config_path = self.path / "default_config.json"
         self.types_dir = self.path / "types" 
+        """
         self.config = {}
 
         self.registry_management()
@@ -53,14 +62,6 @@ class note_store:
 
         return str_clean[:64]
 
-    def registry_management(self):
-
-        if self.config_path.exists():
-            try:
-                with open(self.config_path, "r", encoding="utf-8") as f:
-                    dict = self.json_dict = json.load(f)
-            except (json.JSONDecodeError, IOError):
-                pass
 
 
     def create_note(self,type_name):
@@ -109,7 +110,7 @@ class note_store:
 
         data["notes"].append(insertion)
 
-        self.atomic_save(insertion,file_location)
+        self.atomic_save(data,file_location)
         
     def delete_note(self,delete_id,type_name):
         
