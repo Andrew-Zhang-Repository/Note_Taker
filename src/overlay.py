@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 from notes_store import note_store
-
+from tkinter import simpledialog
 
 class OverlayWindow(tk.Tk):
 
@@ -276,8 +276,12 @@ class OverlayWindow(tk.Tk):
         self.refresh_note_list()
 
     def create_new_note(self):
-        self.store.add_note(self.active_type, "Untitled Note", "")
-        self.refresh_note_list()
+
+        note_title = simpledialog.askstring("New Note", "Enter a title for your new note:")
+
+        if note_title:
+            self.store.add_note(self.active_type, note_title, "")
+            self.refresh_note_list()
 
     def on_note_select(self, event):
         selection = self.note_listbox.curselection()
@@ -297,6 +301,12 @@ class OverlayWindow(tk.Tk):
             
         new_text = self.editor.get("1.0", tk.END).strip()
         self.store.update_note(self.active_note_id, self.active_type, new_text)
+
+        for note in self.current_notes:
+            if note["id"] == self.active_note_id:
+                note["note_body"] = new_text
+                break
+            
         self.save_btn.config(text="Saved!")
         self.after(2000, lambda: self.save_btn.config(text="Save Note"))
 
