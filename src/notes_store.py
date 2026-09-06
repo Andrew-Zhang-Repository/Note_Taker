@@ -118,8 +118,8 @@ class note_store:
         with file_location.open('r', encoding='utf-8') as file:
             data = json.load(file)
 
-        for i in data["notes"]:
-            if i["id"] == delete_id:
+        for i in range(len(data["notes"]) - 1, -1, -1):
+            if data["notes"][i]["id"] == delete_id:
                 data["notes"].pop(i)
                 break
 

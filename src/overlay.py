@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 from notes_store import note_store
-from tkinter import simpledialog
+from tkinter import simpledialog, messagebox
 
 class OverlayWindow(tk.Tk):
 
@@ -131,8 +131,15 @@ class OverlayWindow(tk.Tk):
         font_controls.pack(side=tk.LEFT, padx=8)
 
 
+        self.delete_btn = tk.Button(self.content_frame, text="Delete", bg="#ff4c4c", fg="white", bd=0, command=self.delete_note)
+        self.delete_btn.pack(side=tk.BOTTOM, fill=tk.X, padx=5,pady=5)
+
+
         self.save_btn = tk.Button(self.content_frame, text="Save Note", bg="#007ACC", fg="white", bd=0, command=self.save_note)
         self.save_btn.pack(side=tk.BOTTOM, fill=tk.X, padx=5, pady=5)
+
+
+        
 
         self.notes_ui_management()
 
@@ -279,7 +286,13 @@ class OverlayWindow(tk.Tk):
 
         note_title = simpledialog.askstring("New Note", "Enter a title for your new note:")
 
+        # Search for duplicates
         if note_title:
+            for note in self.current_notes:
+                if note["title"].lower() == note_title.lower():
+                    messagebox.showwarning("Duplicate Name", f"A note named '{note_title}' already exists in this folder.")
+                    return
+
             self.store.add_note(self.active_type, note_title, "")
             self.refresh_note_list()
 
@@ -306,9 +319,23 @@ class OverlayWindow(tk.Tk):
             if note["id"] == self.active_note_id:
                 note["note_body"] = new_text
                 break
-            
+
         self.save_btn.config(text="Saved!")
         self.after(2000, lambda: self.save_btn.config(text="Save Note"))
+
+
+
+    def delete_note(self):
+
+        if not self.active_note_id:
+            return
+
+        self.store.delete_note(self.active_note_id,self.active_type)
+        self.active_note_id = None
+        self.editor.delete("1.0", tk.END)
+        self.refresh_note_list()
+
+
 
 
 
