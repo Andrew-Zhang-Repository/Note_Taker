@@ -3,6 +3,12 @@ from tkinter import ttk
 from notes_store import note_store
 from tkinter import simpledialog, messagebox
 from capture import make_window_invisible
+import threading
+import google.generativeai as genai
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class OverlayWindow(tk.Tk):
 
@@ -118,25 +124,7 @@ class OverlayWindow(tk.Tk):
         self.content_frame.pack(expand=True, fill="both", padx=5, pady=5)
      
 
-        # Bottom bar with font size controls
-        self.bottom_bar = tk.Frame(self.inner_container, bg="#333333", height=30)
-        self.bottom_bar.pack(fill=tk.X, side=tk.BOTTOM)
-        self.bottom_bar.pack_propagate(False)
 
-        # Font size controls container (centered)
-        font_controls = tk.Frame(self.bottom_bar, bg="#333333")
-        font_controls.pack(side=tk.LEFT, padx=8)
-
-
-        self.delete_btn = tk.Button(self.content_frame, text="Delete", bg="#444343", fg="white", bd=0, command=self.delete_note)
-        self.delete_btn.pack(side=tk.TOP, fill=tk.X, padx=5,pady=5)
-
-
-        self.save_btn = tk.Button(self.content_frame, text="Save Note", bg="#444343", fg="white", bd=0, command=self.save_note)
-        self.save_btn.pack(side=tk.BOTTOM, fill=tk.X, padx=5, pady=5)
-
-
-        
 
         self.notes_ui_management()
 
@@ -256,11 +244,20 @@ class OverlayWindow(tk.Tk):
         self.note_listbox.pack(fill=tk.X, padx=5, pady=5)
         self.note_listbox.bind("<<ListboxSelect>>", self.on_note_select)
 
+
+
+        
+        self.delete_btn = tk.Button(top_bar, text="Delete", bg="#444343", fg="white", bd=0, command=self.delete_note)
+        self.delete_btn.pack(side=tk.TOP, fill=tk.X, padx=5,pady=5)
+
+        self.ai_btn = tk.Button(self.content_frame, text="Ask AI", bg="#737575", fg="white", bd=0, command=self.open_llm_window)
+        self.ai_btn.pack(side=tk.BOTTOM, fill=tk.X, expand=True, padx=(2, 2))
+
+        self.save_btn = tk.Button(self.content_frame, text="Save Note", bg="#444343", fg="white", bd=0, command=self.save_note)
+        self.save_btn.pack(side=tk.BOTTOM, fill=tk.X, padx=5, pady=5)
+
         self.editor = tk.Text(self.content_frame, bg="#1e1e1e", fg="white", bd=0, wrap=tk.WORD)
         self.editor.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-
-        self.save_btn = tk.Button(self.content_frame, text="Save Note", bg="#007ACC", fg="white", bd=0, command=self.save_note)
-        self.save_btn.pack(pady=5, fill=tk.X, padx=5)
 
         self.refresh_note_list()
 
@@ -334,6 +331,89 @@ class OverlayWindow(tk.Tk):
             self.active_note_id = None
             self.editor.delete("1.0", tk.END)
             self.refresh_note_list()
+
+
+    def open_llm_window(self):
+        
+        genai.configure(api_key=os.getenv("key"))
+        model = genai.GenerativeModel(os.getenv("default_model"))
+
+        llm_win = tk.Toplevel(self)
+        llm_win.geometry("450x600+500+150")
+        llm_win.configure(bg="#1e1e1e")
+        llm_win.attributes("-topmost", True)
+        llm_win.overrideredirect(True)
+
+     
+        make_window_invisible(llm_win)
+
+    
+        title_bar = tk.Frame(llm_win, bg="#333333", bd=0)
+        title_bar.pack(fill=tk.X, side=tk.TOP)
+        
+        tk.Label(title_bar, text=" Gemini AI", bg="#333333", fg="white", font=("Arial", 10, "bold")).pack(side=tk.LEFT, pady=4, padx=4)
+        tk.Button(title_bar, text=" X ", bg="#ff4c4c", fg="white", bd=0, command=llm_win.destroy).pack(side=tk.RIGHT, padx=4)
+
+        def start_drag(event):
+            llm_win._offsetx = event.x
+            llm_win._offsety = event.y
+            
+        def do_drag(event):
+            x = llm_win.winfo_pointerx() - llm_win._offsetx
+            y = llm_win.winfo_pointery() - llm_win._offsety
+            llm_win.geometry(f"+{x}+{y}")
+            
+        title_bar.bind("<ButtonPress-1>", start_drag)
+        title_bar.bind("<B1-Motion>", do_drag)
+
+        chat_display = tk.Text(llm_win, bg="#1e1e1e", fg="white", bd=0, wrap=tk.WORD, font=("Arial", 10))
+        chat_display.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        chat_display.insert(tk.END, "Gemini: How can I help you today?\n\n")
+        chat_display.config(state=tk.DISABLED)
+
+        input_frame = tk.Frame(llm_win, bg="#252526")
+        input_frame.pack(fill=tk.X, side=tk.BOTTOM, padx=5, pady=5)
+        
+        prompt_entry = tk.Entry(input_frame, bg="#333333", fg="white", bd=0, font=("Arial", 10))
+        prompt_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 5), ipady=8)
+        
+        def send_message(event=None):
+            user_text = prompt_entry.get().strip()
+            if not user_text:
+                return
+                
+            chat_display.config(state=tk.NORMAL)
+            chat_display.insert(tk.END, f"You: {user_text}\n\n")
+            chat_display.see(tk.END) # Scroll to bottom
+            chat_display.config(state=tk.DISABLED)
+            
+            prompt_entry.delete(0, tk.END)
+            prompt_entry.config(state=tk.DISABLED)
+            
+        
+            threading.Thread(target=fetch_gemini, args=(user_text,), daemon=True).start()
+
+        def fetch_gemini(prompt):
+            try:
+                response = model.generate_content(prompt)
+                reply = response.text
+            except Exception as e:
+                reply = f"[Error connecting to Gemini: {e}]"
+                
+            llm_win.after(0, lambda: update_ui(reply))
+
+        def update_ui(reply_text):
+            chat_display.config(state=tk.NORMAL)
+            chat_display.insert(tk.END, f"Gemini: {reply_text}\n\n")
+            chat_display.see(tk.END)
+            chat_display.config(state=tk.DISABLED)
+            
+            prompt_entry.config(state=tk.NORMAL)
+            prompt_entry.focus_set()
+
+        prompt_entry.bind("<Return>", send_message)
+        tk.Button(input_frame, text="Send", bg="#10a37f", fg="white", bd=0, command=send_message).pack(side=tk.RIGHT, ipady=3, ipadx=10)
 
 
 
