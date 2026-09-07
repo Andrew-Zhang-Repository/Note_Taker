@@ -10,124 +10,31 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-class OverlayWindow(tk.Tk):
+
+class Theme:
+    BG = "#1e1e1e"
+    CONTENT_BG = "#252526"
+    BAR_BG = "#333333"
+    BUTTON_BG = "#444343"
+    CARD_BG = "#2d2d2d"
+    FG = "white"
+    MUTED_FG = "#b3b3b3"
+
+
+class ResizableWindowMixin:
 
     EDGE_SIZE = 4
 
     MIN_WIDTH = 200
     MIN_HEIGHT = 150
 
-    # Position margins
-    SCREEN_MARGIN = 20
-    TASKBAR_HEIGHT = 60
-
-    # Nudge distance in pixels
-    NUDGE_DISTANCE = 20
-
-    
-    def __init__(self):
-        super().__init__()
-
-        
+    def _init_drag_state(self):
         self.drag_data = {"x": 0, "y": 0}
-        self.title("Overlay")
-        self.geometry("400x500+100+100")
-        self.configure(bg="#1e1e1e")
-    
+        self.resize_edges = ""
 
-        self.overrideredirect(True)
-        self.attributes("-topmost", True)
-        self.attributes("-alpha", 0.85)
-
-        self.move_window()
-        self._offsetx = 0
-        self._offsety = 0
-
-        make_window_invisible(self)
- 
-    
-    def start_move(self, event):
-        """Records the exact point the user clicked inside the title bar."""
-        self._offsetx = event.x
-        self._offsety = event.y
-
-    def do_move(self, event):
-        """Calculates the new position and moves the window."""
-        x = self.winfo_pointerx() - self._offsetx
-        y = self.winfo_pointery() - self._offsety
-        
-        # Move the window
-        self.geometry(f"+{x}+{y}")
-
-    #Adjustable window
-
-    def move_window(self):
-
-    
-
-        self.main_container = tk.Frame(self, bg="#1e1e1e")
-        self.main_container.pack(fill=tk.BOTH, expand=True)
-
-
-        self.left_edge = tk.Frame(self.main_container, width=self.EDGE_SIZE, bg="#1e1e1e", cursor="size_we")
-        self.left_edge.pack(side=tk.LEFT, fill=tk.Y)
-        self._bind_resize_edge(self.left_edge, "w")
-        
-        self.left_edge = tk.Frame(self.main_container, width=self.EDGE_SIZE, bg="#1e1e1e")
-        self.left_edge.pack(side=tk.LEFT, fill=tk.Y)
-        self._bind_resize_edge(self.left_edge, "w")
-
-        self.right_edge = tk.Frame(self.main_container, width=self.EDGE_SIZE, bg="#1e1e1e", cursor="size_we")
-        self.right_edge.pack(side=tk.RIGHT, fill=tk.Y)
-        self._bind_resize_edge(self.right_edge, "e")
-
-        self.right_edge = tk.Frame(self.main_container, width=self.EDGE_SIZE, bg="#1e1e1e")
-        self.right_edge.pack(side=tk.RIGHT, fill=tk.Y)
-        self._bind_resize_edge(self.right_edge, "e")
-
-        self.inner_container = tk.Frame(self.main_container, bg="#1e1e1e")
-        self.inner_container.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-
-        self.top_edge = tk.Frame(self.inner_container, height=self.EDGE_SIZE, bg="#1e1e1e")
-        self.top_edge.pack(fill=tk.X, side=tk.TOP)
-        self._bind_resize_edge(self.top_edge, "n")
-
-        self.top_edge = tk.Frame(self.inner_container, height=self.EDGE_SIZE, bg="#1e1e1e", cursor="size_ns")
-        self.top_edge.pack(fill=tk.X, side=tk.TOP)
-        self._bind_resize_edge(self.top_edge, "n")
-
-        self.title_frame = tk.Frame(self.inner_container, bg="#1e1e1e", height=25)
-        self.title_frame.pack(fill=tk.X, side=tk.TOP)
-        self.title_frame.pack_propagate(False)
-
-        self.title_bar = tk.Frame(self.inner_container, bg="#1e1e1e", relief="raised", bd=0)
-        self.title_bar.pack(fill="x", side="top")
-
-
-        self.title_frame.bind("<Button-1>", self.start_drag)
-        self.title_frame.bind("<B1-Motion>", self.do_drag)
-   
-
-        self.resize_frame = tk.Frame(self.inner_container, bg="#1e1e1e", height=10)
-        self.resize_frame.pack(fill=tk.X, side=tk.BOTTOM)
-
-        self.resize_frame = tk.Frame(self.inner_container, bg="#1e1e1e", height=self.EDGE_SIZE, cursor="size_ns")
-        self.resize_frame.pack(fill=tk.X, side=tk.BOTTOM)
-
-     
-        # Bind resize events (bottom/southeast)
-        self.resize_frame.bind("<Button-1>", self.start_resize)
-        self.resize_frame.bind("<B1-Motion>", self.do_resize)
-        self.close_btn = tk.Button(self.title_bar, text=" X ", bg="#333333", fg="white", bd=0, command=self.destroy)
-        self.close_btn.pack(side="right", padx=4)
-        self.content_frame = tk.Frame(self.inner_container, bg="#252526") # Slightly lighter so you can see it
-        self.content_frame.pack(expand=True, fill="both", padx=5, pady=5)
-     
-
-
-
-        self.notes_ui_management()
-
+    def _bind_drag(self, widget):
+        widget.bind("<Button-1>", self.start_drag)
+        widget.bind("<B1-Motion>", self.do_drag)
 
     def start_drag(self, event):
         """Initialize window drag operation."""
@@ -140,16 +47,6 @@ class OverlayWindow(tk.Tk):
         y = self.winfo_y() + (event.y - self.drag_data["y"])
         self.geometry(f"+{x}+{y}")
 
-
-    def start_resize(self, event):
-        """Initialize window resize operation (for bottom resize bar)."""
-        self.resize_edges = "se"  # Bottom bar = southeast resize
-        self._start_edge_resize(event)
-
-    def do_resize(self, event):
-        """Handle window resizing (for bottom resize bar)."""
-        self._do_edge_resize(event)
-
     def _start_edge_resize(self, event):
         """Initialize edge resize operation."""
         self.drag_data["x"] = event.x_root
@@ -158,7 +55,6 @@ class OverlayWindow(tk.Tk):
         self.drag_data["height"] = self.winfo_height()
         self.drag_data["win_x"] = self.winfo_x()
         self.drag_data["win_y"] = self.winfo_y()
-
 
     def _do_edge_resize(self, event):
         """Handle edge resize based on which edges are active."""
@@ -199,7 +95,6 @@ class OverlayWindow(tk.Tk):
 
         self.geometry(f"{new_w}x{new_h}+{new_x}+{new_y}")
 
-
     def _bind_resize_edge(self, frame: tk.Frame, edge: str) -> None:
         """Bind resize events to an edge frame."""
         def start(event):
@@ -217,19 +112,287 @@ class OverlayWindow(tk.Tk):
         frame.bind("<B1-Motion>", drag)
         frame.bind("<ButtonRelease-1>", release)
 
+
+class LLMWindow(tk.Toplevel, ResizableWindowMixin):
+
+    MIN_WIDTH = 320
+    MIN_HEIGHT = 380
+
+    FONT = ("Segoe UI", 10)
+    FONT_BOLD = ("Segoe UI", 10, "bold")
+    FONT_ITALIC = ("Segoe UI", 10, "italic")
+
+    def __init__(self, master, model):
+        super().__init__(master)
+
+        self.model = model
+        self._busy = False
+        self._thinking_index = None
+        self._init_drag_state()
+
+        self.title("LLM")
+        self.geometry("450x600+500+150")
+        self.configure(bg=Theme.BG)
+
+        self.overrideredirect(True)
+        self.attributes("-topmost", True)
+        self.attributes("-alpha", 0.92)
+
+        self._build_chrome()
+        self._build_input()
+        self._build_chat()
+
+        make_window_invisible(self)
+
+        self._insert_message("How can I help you today?", is_user=False)
+
+    def _build_chrome(self):
+        main_container = tk.Frame(self, bg=Theme.BG)
+        main_container.pack(fill=tk.BOTH, expand=True)
+
+        left_edge = tk.Frame(main_container, width=self.EDGE_SIZE, bg=Theme.BG, cursor="size_we")
+        left_edge.pack(side=tk.LEFT, fill=tk.Y)
+        self._bind_resize_edge(left_edge, "w")
+
+        right_edge = tk.Frame(main_container, width=self.EDGE_SIZE, bg=Theme.BG, cursor="size_we")
+        right_edge.pack(side=tk.RIGHT, fill=tk.Y)
+        self._bind_resize_edge(right_edge, "e")
+
+        inner_container = tk.Frame(main_container, bg=Theme.BG)
+        inner_container.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        top_edge = tk.Frame(inner_container, height=self.EDGE_SIZE, bg=Theme.BG, cursor="size_ns")
+        top_edge.pack(fill=tk.X, side=tk.TOP)
+        self._bind_resize_edge(top_edge, "n")
+
+        title_bar = tk.Frame(inner_container, bg=Theme.BAR_BG, height=28)
+        title_bar.pack(fill=tk.X, side=tk.TOP)
+        title_bar.pack_propagate(False)
+
+        title_label = tk.Label(title_bar, bg=Theme.BAR_BG, fg=Theme.FG, font=self.FONT_BOLD)
+        title_label.pack(side=tk.LEFT, padx=4)
+
+        close_btn = tk.Button(
+            title_bar, text=" X ", bg=Theme.BUTTON_BG, fg=Theme.FG, bd=0,
+            activebackground=Theme.BAR_BG, activeforeground=Theme.FG, command=self.destroy,
+        )
+        close_btn.pack(side=tk.RIGHT, padx=4)
+
+        self._bind_drag(title_bar)
+        self._bind_drag(title_label)
+
+        bottom_edge = tk.Frame(inner_container, bg=Theme.BG, height=self.EDGE_SIZE + 6, cursor="size_nw_se")
+        bottom_edge.pack(fill=tk.X, side=tk.BOTTOM)
+        self._bind_resize_edge(bottom_edge, "se")
+
+        self.content_frame = tk.Frame(inner_container, bg=Theme.CONTENT_BG)
+        self.content_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+    def _build_input(self):
+        input_frame = tk.Frame(self.content_frame, bg=Theme.CONTENT_BG)
+        input_frame.pack(fill=tk.X, side=tk.BOTTOM, padx=5, pady=5)
+
+        self.prompt_entry = tk.Entry(
+            input_frame, bg=Theme.BAR_BG, fg=Theme.FG, insertbackground=Theme.FG,
+            bd=0, font=self.FONT, relief=tk.FLAT,
+            highlightthickness=1, highlightbackground=Theme.BUTTON_BG, highlightcolor=Theme.MUTED_FG,
+        )
+        self.prompt_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 6), ipady=8)
+        self.prompt_entry.bind("<Return>", self.send_message)
+        self.prompt_entry.focus_set()
+
+        self.send_btn = tk.Button(
+            input_frame, text="Send", bg=Theme.BUTTON_BG, fg=Theme.FG, bd=0, font=self.FONT,
+            activebackground=Theme.BAR_BG, activeforeground=Theme.FG, command=self.send_message,
+        )
+        self.send_btn.pack(side=tk.RIGHT, ipadx=12, ipady=4)
+
+    def _build_chat(self):
+        chat_frame = tk.Frame(self.content_frame, bg=Theme.CONTENT_BG)
+        chat_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=(5, 0))
+
+        self.chat_display = tk.Text(
+            chat_frame, bg=Theme.CONTENT_BG, fg=Theme.FG, bd=0, wrap=tk.WORD,
+            font=self.FONT, state=tk.DISABLED, padx=6, pady=6, highlightthickness=0,
+        )
+
+        scrollbar = tk.Scrollbar(
+            chat_frame, command=self.chat_display.yview, bg=Theme.BAR_BG,
+            troughcolor=Theme.CONTENT_BG, activebackground=Theme.BUTTON_BG,
+            highlightthickness=0, bd=0, width=10,
+        )
+        self.chat_display.configure(yscrollcommand=scrollbar.set)
+
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.chat_display.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        self.chat_display.tag_configure(
+            "user_label", font=self.FONT_BOLD, foreground=Theme.FG, background=Theme.CARD_BG,
+            lmargin1=90, lmargin2=90, rmargin=12, spacing1=10,
+        )
+        self.chat_display.tag_configure(
+            "user_body", foreground=Theme.FG, background=Theme.CARD_BG,
+            lmargin1=90, lmargin2=90, rmargin=12, spacing3=8,
+        )
+        self.chat_display.tag_configure(
+            "ai_label", font=self.FONT_BOLD, foreground=Theme.MUTED_FG, background=Theme.BG,
+            lmargin1=12, lmargin2=12, rmargin=90, spacing1=10,
+        )
+        self.chat_display.tag_configure(
+            "ai_body", foreground=Theme.FG, background=Theme.BG,
+            lmargin1=12, lmargin2=12, rmargin=90, spacing3=8,
+        )
+        self.chat_display.tag_configure(
+            "thinking", font=self.FONT_ITALIC, foreground=Theme.MUTED_FG, background=Theme.CONTENT_BG,
+            lmargin1=12, lmargin2=12, spacing1=8, spacing3=8,
+        )
+
+    def _insert_message(self, text, is_user):
+        label_tag = "user_label" if is_user else "ai_label"
+        body_tag = "user_body" if is_user else "ai_body"
+        label = "You" if is_user else "Gemini"
+
+        self.chat_display.configure(state=tk.NORMAL)
+        self.chat_display.insert(tk.END, f" {label} \n", label_tag)
+        self.chat_display.insert(tk.END, f" {text} \n", body_tag)
+        self.chat_display.insert(tk.END, "\n")
+        self.chat_display.see(tk.END)
+        self.chat_display.configure(state=tk.DISABLED)
+
+    def _show_thinking(self):
+        self.chat_display.configure(state=tk.NORMAL)
+        self._thinking_index = self.chat_display.index(tk.END)
+        self.chat_display.insert(tk.END, "Gemini is thinking...", "thinking")
+        self.chat_display.see(tk.END)
+        self.chat_display.configure(state=tk.DISABLED)
+
+    def _hide_thinking(self):
+        if self._thinking_index is None:
+            return
+        self.chat_display.configure(state=tk.NORMAL)
+        self.chat_display.delete(self._thinking_index, tk.END)
+        self._thinking_index = None
+        self.chat_display.configure(state=tk.DISABLED)
+
+    def send_message(self, event=None):
+        if self._busy:
+            return
+
+        user_text = self.prompt_entry.get().strip()
+        if not user_text:
+            return
+
+        self._busy = True
+        self._insert_message(user_text, is_user=True)
+        self.prompt_entry.delete(0, tk.END)
+        self.prompt_entry.configure(state=tk.DISABLED)
+        self.send_btn.configure(state=tk.DISABLED)
+        self._show_thinking()
+
+        threading.Thread(target=self._fetch_gemini, args=(user_text,), daemon=True).start()
+
+    def _fetch_gemini(self, prompt):
+        try:
+            reply = self.model.generate_content(prompt).text
+        except Exception as e:
+            reply = f"[Error connecting to Gemini: {e}]"
+
+        try:
+            self.after(0, lambda: self._finish_reply(reply))
+        except tk.TclError:
+            pass
+
+    def _finish_reply(self, reply):
+        if not self.winfo_exists():
+            return
+
+        self._hide_thinking()
+        self._insert_message(reply, is_user=False)
+
+        self.prompt_entry.configure(state=tk.NORMAL)
+        self.send_btn.configure(state=tk.NORMAL)
+        self.prompt_entry.focus_set()
+        self._busy = False
+
+
+class OverlayWindow(tk.Tk, ResizableWindowMixin):
+
+    # Position margins
+    SCREEN_MARGIN = 20
+    TASKBAR_HEIGHT = 60
+
+    # Nudge distance in pixels
+    NUDGE_DISTANCE = 20
+
+    def __init__(self):
+        super().__init__()
+
+        self._init_drag_state()
+        self.title("Overlay")
+        self.geometry("400x500+100+100")
+        self.configure(bg=Theme.BG)
+
+        self.overrideredirect(True)
+        self.attributes("-topmost", True)
+        self.attributes("-alpha", 0.85)
+
+        self.model = None
+        self.llm_win = None
+
+        self.move_window()
+
+        make_window_invisible(self)
+
+    def move_window(self):
+
+        self.main_container = tk.Frame(self, bg=Theme.BG)
+        self.main_container.pack(fill=tk.BOTH, expand=True)
+
+        left_edge = tk.Frame(self.main_container, width=self.EDGE_SIZE, bg=Theme.BG, cursor="size_we")
+        left_edge.pack(side=tk.LEFT, fill=tk.Y)
+        self._bind_resize_edge(left_edge, "w")
+
+        right_edge = tk.Frame(self.main_container, width=self.EDGE_SIZE, bg=Theme.BG, cursor="size_we")
+        right_edge.pack(side=tk.RIGHT, fill=tk.Y)
+        self._bind_resize_edge(right_edge, "e")
+
+        self.inner_container = tk.Frame(self.main_container, bg=Theme.BG)
+        self.inner_container.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        top_edge = tk.Frame(self.inner_container, height=self.EDGE_SIZE, bg=Theme.BG, cursor="size_ns")
+        top_edge.pack(fill=tk.X, side=tk.TOP)
+        self._bind_resize_edge(top_edge, "n")
+
+        self.title_bar = tk.Frame(self.inner_container, bg=Theme.BG, height=28)
+        self.title_bar.pack(fill=tk.X, side=tk.TOP)
+        self.title_bar.pack_propagate(False)
+        self._bind_drag(self.title_bar)
+
+        self.close_btn = tk.Button(
+            self.title_bar, text=" X ", bg=Theme.BAR_BG, fg=Theme.FG, bd=0,
+            activebackground=Theme.BUTTON_BG, activeforeground=Theme.FG, command=self.destroy,
+        )
+        self.close_btn.pack(side=tk.RIGHT, padx=4, pady=2)
+
+        resize_frame = tk.Frame(self.inner_container, bg=Theme.BG, height=self.EDGE_SIZE + 6, cursor="size_nw_se")
+        resize_frame.pack(fill=tk.X, side=tk.BOTTOM)
+        self._bind_resize_edge(resize_frame, "se")
+
+        self.content_frame = tk.Frame(self.inner_container, bg=Theme.CONTENT_BG)
+        self.content_frame.pack(expand=True, fill="both", padx=5, pady=5)
+
+        self.notes_ui_management()
+
     def notes_ui_management(self):
         self.store = note_store()
 
         if self.store.config.get("types"):
             self.active_type = self.store.config["types"][0]
-            
-        self.current_notes = []
-        self.active_note_id = None
 
         self.current_notes = []
         self.active_note_id = None
 
-        top_bar = tk.Frame(self.content_frame, bg="#252526")
+        top_bar = tk.Frame(self.content_frame, bg=Theme.CONTENT_BG)
         top_bar.pack(fill=tk.X, pady=5)
 
         self.type_combo = ttk.Combobox(top_bar, values=self.store.config.get("types", []), state="readonly")
@@ -237,42 +400,38 @@ class OverlayWindow(tk.Tk):
         self.type_combo.pack(side=tk.LEFT, padx=5)
         self.type_combo.bind("<<ComboboxSelected>>", self.on_type_change)
 
-        new_btn = tk.Button(top_bar, text="+ New Note", bg="#333333", fg="white", bd=0, command=self.create_new_note)
+        new_btn = tk.Button(top_bar, text="+ New Note", bg=Theme.BAR_BG, fg=Theme.FG, bd=0, command=self.create_new_note)
         new_btn.pack(side=tk.RIGHT, padx=5)
 
-        self.note_listbox = tk.Listbox(self.content_frame, height=5, bg="#1e1e1e", fg="white", bd=0)
+        self.note_listbox = tk.Listbox(self.content_frame, height=5, bg=Theme.BG, fg=Theme.FG, bd=0)
         self.note_listbox.pack(fill=tk.X, padx=5, pady=5)
         self.note_listbox.bind("<<ListboxSelect>>", self.on_note_select)
 
+        self.delete_btn = tk.Button(top_bar, text="Delete", bg=Theme.BUTTON_BG, fg=Theme.FG, bd=0, command=self.delete_note)
+        self.delete_btn.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 
-
-        
-        self.delete_btn = tk.Button(top_bar, text="Delete", bg="#444343", fg="white", bd=0, command=self.delete_note)
-        self.delete_btn.pack(side=tk.TOP, fill=tk.X, padx=5,pady=5)
-
-        self.ai_btn = tk.Button(self.content_frame, text="Ask AI", bg="#737575", fg="white", bd=0, command=self.open_llm_window)
+        self.ai_btn = tk.Button(self.content_frame, text="Ask AI", bg="#737575", fg=Theme.FG, bd=0, command=self.open_llm_window)
         self.ai_btn.pack(side=tk.BOTTOM, fill=tk.X, expand=True, padx=(2, 2))
 
-        self.save_btn = tk.Button(self.content_frame, text="Save Note", bg="#444343", fg="white", bd=0, command=self.save_note)
+        self.save_btn = tk.Button(self.content_frame, text="Save Note", bg=Theme.BUTTON_BG, fg=Theme.FG, bd=0, command=self.save_note)
         self.save_btn.pack(side=tk.BOTTOM, fill=tk.X, padx=5, pady=5)
 
-        self.editor = tk.Text(self.content_frame, bg="#1e1e1e", fg="white", bd=0, wrap=tk.WORD)
+        self.editor = tk.Text(self.content_frame, bg=Theme.BG, fg=Theme.FG, bd=0, wrap=tk.WORD)
         self.editor.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
         self.refresh_note_list()
 
     def refresh_note_list(self):
-   
-        self.note_listbox.delete(0, tk.END) 
+
+        self.note_listbox.delete(0, tk.END)
         self.current_notes = self.store.read_note(self.active_type)
 
         for note in self.current_notes:
             self.note_listbox.insert(tk.END, note["title"])
 
-
     def on_type_change(self, event):
         self.active_type = self.type_combo.get()
-        self.editor.delete("1.0", tk.END) 
+        self.editor.delete("1.0", tk.END)
         self.active_note_id = None
         self.refresh_note_list()
 
@@ -294,18 +453,18 @@ class OverlayWindow(tk.Tk):
         selection = self.note_listbox.curselection()
         if not selection:
             return
-            
+
         index = selection[0]
         selected_note = self.current_notes[index]
         self.active_note_id = selected_note["id"]
-        
+
         self.editor.delete("1.0", tk.END)
         self.editor.insert(tk.END, selected_note["note_body"])
 
     def save_note(self):
         if not self.active_note_id:
             return
-            
+
         new_text = self.editor.get("1.0", tk.END).strip()
         self.store.update_note(self.active_note_id, self.active_type, new_text)
 
@@ -317,8 +476,6 @@ class OverlayWindow(tk.Tk):
         self.save_btn.config(text="Saved!")
         self.after(2000, lambda: self.save_btn.config(text="Save Note"))
 
-
-
     def delete_note(self):
 
         if not self.active_note_id:
@@ -327,96 +484,24 @@ class OverlayWindow(tk.Tk):
         confirm = messagebox.askyesno("Delete Note", "Are you sure you want to delete this note? This cannot be undone.")
 
         if confirm:
-            self.store.delete_note(self.active_note_id,self.active_type)
+            self.store.delete_note(self.active_note_id, self.active_type)
             self.active_note_id = None
             self.editor.delete("1.0", tk.END)
             self.refresh_note_list()
 
+    def _get_model(self):
+        if self.model is None:
+            genai.configure(api_key=os.getenv("key"))
+            self.model = genai.GenerativeModel(os.getenv("default_model"))
+        return self.model
 
     def open_llm_window(self):
-        
-        genai.configure(api_key=os.getenv("key"))
-        model = genai.GenerativeModel(os.getenv("default_model"))
+        if self.llm_win is not None and self.llm_win.winfo_exists():
+            self.llm_win.lift()
+            self.llm_win.focus_force()
+            return
 
-        llm_win = tk.Toplevel(self)
-        llm_win.geometry("450x600+500+150")
-        llm_win.configure(bg="#1e1e1e")
-        llm_win.attributes("-topmost", True)
-        llm_win.overrideredirect(True)
-
-     
-        make_window_invisible(llm_win)
-
-    
-        title_bar = tk.Frame(llm_win, bg="#333333", bd=0)
-        title_bar.pack(fill=tk.X, side=tk.TOP)
-        
-        tk.Label(title_bar, text=" Gemini AI", bg="#333333", fg="white", font=("Arial", 10, "bold")).pack(side=tk.LEFT, pady=4, padx=4)
-        tk.Button(title_bar, text=" X ", bg="#ff4c4c", fg="white", bd=0, command=llm_win.destroy).pack(side=tk.RIGHT, padx=4)
-
-        def start_drag(event):
-            llm_win._offsetx = event.x
-            llm_win._offsety = event.y
-            
-        def do_drag(event):
-            x = llm_win.winfo_pointerx() - llm_win._offsetx
-            y = llm_win.winfo_pointery() - llm_win._offsety
-            llm_win.geometry(f"+{x}+{y}")
-            
-        title_bar.bind("<ButtonPress-1>", start_drag)
-        title_bar.bind("<B1-Motion>", do_drag)
-
-        chat_display = tk.Text(llm_win, bg="#1e1e1e", fg="white", bd=0, wrap=tk.WORD, font=("Arial", 10))
-        chat_display.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-        
-        chat_display.insert(tk.END, "Gemini: How can I help you today?\n\n")
-        chat_display.config(state=tk.DISABLED)
-
-        input_frame = tk.Frame(llm_win, bg="#252526")
-        input_frame.pack(fill=tk.X, side=tk.BOTTOM, padx=5, pady=5)
-        
-        prompt_entry = tk.Entry(input_frame, bg="#333333", fg="white", bd=0, font=("Arial", 10))
-        prompt_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 5), ipady=8)
-        
-        def send_message(event=None):
-            user_text = prompt_entry.get().strip()
-            if not user_text:
-                return
-                
-            chat_display.config(state=tk.NORMAL)
-            chat_display.insert(tk.END, f"You: {user_text}\n\n")
-            chat_display.see(tk.END) # Scroll to bottom
-            chat_display.config(state=tk.DISABLED)
-            
-            prompt_entry.delete(0, tk.END)
-            prompt_entry.config(state=tk.DISABLED)
-            
-        
-            threading.Thread(target=fetch_gemini, args=(user_text,), daemon=True).start()
-
-        def fetch_gemini(prompt):
-            try:
-                response = model.generate_content(prompt)
-                reply = response.text
-            except Exception as e:
-                reply = f"[Error connecting to Gemini: {e}]"
-                
-            llm_win.after(0, lambda: update_ui(reply))
-
-        def update_ui(reply_text):
-            chat_display.config(state=tk.NORMAL)
-            chat_display.insert(tk.END, f"Gemini: {reply_text}\n\n")
-            chat_display.see(tk.END)
-            chat_display.config(state=tk.DISABLED)
-            
-            prompt_entry.config(state=tk.NORMAL)
-            prompt_entry.focus_set()
-
-        prompt_entry.bind("<Return>", send_message)
-        tk.Button(input_frame, text="Send", bg="#10a37f", fg="white", bd=0, command=send_message).pack(side=tk.RIGHT, ipady=3, ipadx=10)
-
-
-
+        self.llm_win = LLMWindow(self, self._get_model())
 
 
 if __name__ == "__main__":
