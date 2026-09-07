@@ -4,6 +4,7 @@ from notes_store import note_store
 from tkinter import simpledialog, messagebox
 from capture import make_window_invisible
 import threading
+import queue
 import google.generativeai as genai
 import os
 from dotenv import load_dotenv
@@ -122,12 +123,14 @@ class LLMWindow(tk.Toplevel, ResizableWindowMixin):
     FONT_BOLD = ("Segoe UI", 10, "bold")
     FONT_ITALIC = ("Segoe UI", 10, "italic")
 
-    def __init__(self, master, model):
+    def __init__(self, master, model, model_name="AI"):
         super().__init__(master)
 
         self.model = model
+        self.model_name = model_name or "AI"
         self._busy = False
-        self._thinking_index = None
+        self._reply_queue = None
+        self._stream_started = False
         self._init_drag_state()
 
         self.title("LLM")
@@ -169,7 +172,7 @@ class LLMWindow(tk.Toplevel, ResizableWindowMixin):
         title_bar.pack(fill=tk.X, side=tk.TOP)
         title_bar.pack_propagate(False)
 
-        title_label = tk.Label(title_bar, bg=Theme.BAR_BG, fg=Theme.FG, font=self.FONT_BOLD)
+        title_label = tk.Label(title_bar, text=f" {self.model_name} ", bg=Theme.BAR_BG, fg=Theme.FG, font=self.FONT_BOLD)
         title_label.pack(side=tk.LEFT, padx=4)
 
         close_btn = tk.Button(
@@ -213,7 +216,7 @@ class LLMWindow(tk.Toplevel, ResizableWindowMixin):
 
         self.chat_display = tk.Text(
             chat_frame, bg=Theme.CONTENT_BG, fg=Theme.FG, bd=0, wrap=tk.WORD,
-            font=self.FONT, state=tk.DISABLED, padx=6, pady=6, highlightthickness=0,
+            font=self.FONT, state=tk.NORMAL, padx=6, pady=6, highlightthickness=0,cursor="arrow"
         )
 
         scrollbar = tk.Scrollbar(
@@ -225,6 +228,10 @@ class LLMWindow(tk.Toplevel, ResizableWindowMixin):
 
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.chat_display.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        self.chat_display.bind("<Key>", self._readonly_key)
+        self.chat_display.bind("<Button-2>", lambda e: "break")
+        self.chat_display.bind("<Button-3>", self._show_copy_menu)
 
         self.chat_display.tag_configure(
             "user_label", font=self.FONT_BOLD, foreground=Theme.FG, background=Theme.CARD_BG,
@@ -247,32 +254,66 @@ class LLMWindow(tk.Toplevel, ResizableWindowMixin):
             lmargin1=12, lmargin2=12, spacing1=8, spacing3=8,
         )
 
+    def _at_bottom(self):
+        return self.chat_display.yview()[1] >= 0.995
+
+    def _readonly_key(self, event):
+        # Allow Ctrl+C / Ctrl+A, selection and navigation keys; block all editing.
+        if event.state & 0x4 and event.keysym.lower() in ("c", "a"):
+            return None
+        if event.keysym in ("Shift_L", "Shift_R", "Control_L", "Control_R",
+                            "Left", "Right", "Up", "Down", "Home", "End", "Prior", "Next"):
+            return None
+        return "break"
+
+    def _show_copy_menu(self, event):
+        menu = tk.Menu(
+            self.chat_display, tearoff=0, bg=Theme.BAR_BG, fg=Theme.FG, bd=0,
+            activebackground=Theme.BUTTON_BG, activeforeground=Theme.FG,
+        )
+        try:
+            self.chat_display.get(tk.SEL_FIRST, tk.SEL_LAST)
+            sel_state = "normal"
+        except tk.TclError:
+            sel_state = "disabled"
+        menu.add_command(label="Copy selection", state=sel_state, command=self._copy_selection)
+        menu.add_command(label="Copy full response", command=self._copy_full_response)
+        menu.tk_popup(event.x_root, event.y_root)
+
+    def _copy_selection(self):
+        try:
+            self.clipboard_clear()
+            self.clipboard_append(self.chat_display.get(tk.SEL_FIRST, tk.SEL_LAST))
+        except tk.TclError:
+            pass
+
+    def _copy_full_response(self):
+        self.clipboard_clear()
+        self.clipboard_append(self.chat_display.get("1.0", "end-1c"))
+
     def _insert_message(self, text, is_user):
         label_tag = "user_label" if is_user else "ai_label"
         body_tag = "user_body" if is_user else "ai_body"
-        label = "You" if is_user else "Gemini"
+        label = "You" if is_user else self.model_name
 
-        self.chat_display.configure(state=tk.NORMAL)
+        stick = self._at_bottom()
         self.chat_display.insert(tk.END, f" {label} \n", label_tag)
         self.chat_display.insert(tk.END, f" {text} \n", body_tag)
         self.chat_display.insert(tk.END, "\n")
-        self.chat_display.see(tk.END)
-        self.chat_display.configure(state=tk.DISABLED)
+        if stick:
+            self.chat_display.see(tk.END)
 
     def _show_thinking(self):
-        self.chat_display.configure(state=tk.NORMAL)
-        self._thinking_index = self.chat_display.index(tk.END)
-        self.chat_display.insert(tk.END, "Gemini is thinking...", "thinking")
-        self.chat_display.see(tk.END)
-        self.chat_display.configure(state=tk.DISABLED)
+        stick = self._at_bottom()
+        self.chat_display.insert(tk.END, f"{self.model_name} is thinking...", "thinking")
+        if stick:
+            self.chat_display.see(tk.END)
 
     def _hide_thinking(self):
-        if self._thinking_index is None:
+        ranges = self.chat_display.tag_ranges("thinking")
+        if not ranges:
             return
-        self.chat_display.configure(state=tk.NORMAL)
-        self.chat_display.delete(self._thinking_index, tk.END)
-        self._thinking_index = None
-        self.chat_display.configure(state=tk.DISABLED)
+        self.chat_display.delete(ranges[0], ranges[1])
 
     def send_message(self, event=None):
         if self._busy:
@@ -283,32 +324,73 @@ class LLMWindow(tk.Toplevel, ResizableWindowMixin):
             return
 
         self._busy = True
+        self._stream_started = False
+        self._reply_queue = queue.Queue()
         self._insert_message(user_text, is_user=True)
         self.prompt_entry.delete(0, tk.END)
         self.prompt_entry.configure(state=tk.DISABLED)
         self.send_btn.configure(state=tk.DISABLED)
         self._show_thinking()
 
-        threading.Thread(target=self._fetch_gemini, args=(user_text,), daemon=True).start()
+        threading.Thread(target=self._stream_worker, args=(user_text,), daemon=True).start()
+        self.after(80, self._poll_queue)
 
-    def _fetch_gemini(self, prompt):
+    def _stream_worker(self, prompt):
         try:
-            reply = self.model.generate_content(prompt).text
+            for chunk in self.model.generate_content(prompt, stream=True):
+                try:
+                    text = chunk.text
+                except Exception:
+                    continue
+                if text:
+                    self._reply_queue.put(text)
         except Exception as e:
-            reply = f"[Error connecting to Gemini: {e}]"
+            self._reply_queue.put(f"[Error connecting to {self.model_name}: {e}]")
+        finally:
+            self._reply_queue.put(None)
 
-        try:
-            self.after(0, lambda: self._finish_reply(reply))
-        except tk.TclError:
-            pass
-
-    def _finish_reply(self, reply):
-        if not self.winfo_exists():
+    def _poll_queue(self):
+        if not self.winfo_exists() or self._reply_queue is None:
             return
 
-        self._hide_thinking()
-        self._insert_message(reply, is_user=False)
+        try:
+            while True:
+                item = self._reply_queue.get_nowait()
+                if item is None:
+                    self._end_stream()
+                    return
+                self._append_stream_chunk(item)
+        except queue.Empty:
+            pass
 
+        self.after(80, self._poll_queue)
+
+    def _append_stream_chunk(self, text):
+        stick = self._at_bottom()
+
+        if not self._stream_started:
+            self._stream_started = True
+            self._hide_thinking()
+            self.chat_display.insert(tk.END, f" {self.model_name} \n", "ai_label")
+            self.chat_display.insert(tk.END, f" {text}", "ai_body")
+        else:
+            self.chat_display.insert(tk.END, text, "ai_body")
+
+        if stick:
+            self.chat_display.see(tk.END)
+
+    def _end_stream(self):
+        if self._stream_started:
+            stick = self._at_bottom()
+            self.chat_display.insert(tk.END, " \n", "ai_body")
+            self.chat_display.insert(tk.END, "\n")
+            if stick:
+                self.chat_display.see(tk.END)
+        else:
+            self._hide_thinking()
+            self._insert_message("[No response received]", is_user=False)
+
+        self._reply_queue = None
         self.prompt_entry.configure(state=tk.NORMAL)
         self.send_btn.configure(state=tk.NORMAL)
         self.prompt_entry.focus_set()
@@ -337,6 +419,7 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
         self.attributes("-alpha", 0.85)
 
         self.model = None
+        self.model_name = None
         self.llm_win = None
 
         self.move_window()
@@ -492,7 +575,8 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
     def _get_model(self):
         if self.model is None:
             genai.configure(api_key=os.getenv("key"))
-            self.model = genai.GenerativeModel(os.getenv("default_model"))
+            self.model_name = os.getenv("default_model") or "AI"
+            self.model = genai.GenerativeModel(self.model_name)
         return self.model
 
     def open_llm_window(self):
@@ -501,7 +585,8 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
             self.llm_win.focus_force()
             return
 
-        self.llm_win = LLMWindow(self, self._get_model())
+        self._get_model()
+        self.llm_win = LLMWindow(self, self.model, self.model_name)
 
 
 if __name__ == "__main__":
