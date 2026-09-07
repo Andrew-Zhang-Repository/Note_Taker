@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from notes_store import note_store
 from tkinter import simpledialog, messagebox
+from capture import make_window_invisible
 
 class OverlayWindow(tk.Tk):
 
@@ -32,15 +33,11 @@ class OverlayWindow(tk.Tk):
         self.attributes("-topmost", True)
         self.attributes("-alpha", 0.85)
 
-     
-
-
         self.move_window()
-
-
-
         self._offsetx = 0
         self._offsety = 0
+
+        make_window_invisible(self)
  
     
     def start_move(self, event):
@@ -131,11 +128,11 @@ class OverlayWindow(tk.Tk):
         font_controls.pack(side=tk.LEFT, padx=8)
 
 
-        self.delete_btn = tk.Button(self.content_frame, text="Delete", bg="#ff4c4c", fg="white", bd=0, command=self.delete_note)
-        self.delete_btn.pack(side=tk.BOTTOM, fill=tk.X, padx=5,pady=5)
+        self.delete_btn = tk.Button(self.content_frame, text="Delete", bg="#444343", fg="white", bd=0, command=self.delete_note)
+        self.delete_btn.pack(side=tk.TOP, fill=tk.X, padx=5,pady=5)
 
 
-        self.save_btn = tk.Button(self.content_frame, text="Save Note", bg="#007ACC", fg="white", bd=0, command=self.save_note)
+        self.save_btn = tk.Button(self.content_frame, text="Save Note", bg="#444343", fg="white", bd=0, command=self.save_note)
         self.save_btn.pack(side=tk.BOTTOM, fill=tk.X, padx=5, pady=5)
 
 
@@ -330,10 +327,13 @@ class OverlayWindow(tk.Tk):
         if not self.active_note_id:
             return
 
-        self.store.delete_note(self.active_note_id,self.active_type)
-        self.active_note_id = None
-        self.editor.delete("1.0", tk.END)
-        self.refresh_note_list()
+        confirm = messagebox.askyesno("Delete Note", "Are you sure you want to delete this note? This cannot be undone.")
+
+        if confirm:
+            self.store.delete_note(self.active_note_id,self.active_type)
+            self.active_note_id = None
+            self.editor.delete("1.0", tk.END)
+            self.refresh_note_list()
 
 
 
