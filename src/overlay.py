@@ -231,7 +231,6 @@ class LLMWindow(tk.Toplevel, ResizableWindowMixin):
 
         self.chat_display.bind("<Key>", self._readonly_key)
         self.chat_display.bind("<Button-2>", lambda e: "break")
-        self.chat_display.bind("<Button-3>", self._show_copy_menu)
 
         self.chat_display.tag_configure(
             "user_label", font=self.FONT_BOLD, foreground=Theme.FG, background=Theme.CARD_BG,
@@ -253,6 +252,8 @@ class LLMWindow(tk.Toplevel, ResizableWindowMixin):
             "thinking", font=self.FONT_ITALIC, foreground=Theme.MUTED_FG, background=Theme.CONTENT_BG,
             lmargin1=12, lmargin2=12, spacing1=8, spacing3=8,
         )
+        self.chat_display.tag_configure("sel", background="#4a5a6a", foreground=Theme.FG)
+        self.chat_display.tag_raise("sel")
 
     def _at_bottom(self):
         return self.chat_display.yview()[1] >= 0.995
@@ -265,31 +266,6 @@ class LLMWindow(tk.Toplevel, ResizableWindowMixin):
                             "Left", "Right", "Up", "Down", "Home", "End", "Prior", "Next"):
             return None
         return "break"
-
-    def _show_copy_menu(self, event):
-        menu = tk.Menu(
-            self.chat_display, tearoff=0, bg=Theme.BAR_BG, fg=Theme.FG, bd=0,
-            activebackground=Theme.BUTTON_BG, activeforeground=Theme.FG,
-        )
-        try:
-            self.chat_display.get(tk.SEL_FIRST, tk.SEL_LAST)
-            sel_state = "normal"
-        except tk.TclError:
-            sel_state = "disabled"
-        menu.add_command(label="Copy selection", state=sel_state, command=self._copy_selection)
-        menu.add_command(label="Copy full response", command=self._copy_full_response)
-        menu.tk_popup(event.x_root, event.y_root)
-
-    def _copy_selection(self):
-        try:
-            self.clipboard_clear()
-            self.clipboard_append(self.chat_display.get(tk.SEL_FIRST, tk.SEL_LAST))
-        except tk.TclError:
-            pass
-
-    def _copy_full_response(self):
-        self.clipboard_clear()
-        self.clipboard_append(self.chat_display.get("1.0", "end-1c"))
 
     def _insert_message(self, text, is_user):
         label_tag = "user_label" if is_user else "ai_label"
@@ -499,7 +475,7 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
         self.save_btn = tk.Button(self.content_frame, text="Save Note", bg=Theme.BUTTON_BG, fg=Theme.FG, bd=0, command=self.save_note)
         self.save_btn.pack(side=tk.BOTTOM, fill=tk.X, padx=5, pady=5)
 
-        self.editor = tk.Text(self.content_frame, bg=Theme.BG, fg=Theme.FG, bd=0, wrap=tk.WORD)
+        self.editor = tk.Text(self.content_frame, bg=Theme.BG, fg=Theme.FG, bd=0, wrap=tk.WORD, insertbackground="white")
         self.editor.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
         self.refresh_note_list()
