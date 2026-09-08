@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 from notes_store import note_store
+from speech_capture import SpeakerRecorder
 from tkinter import simpledialog, messagebox
 from capture import make_window_invisible
 import threading
@@ -17,6 +18,7 @@ class Theme:
     CONTENT_BG = "#252526"
     BAR_BG = "#333333"
     BUTTON_BG = "#444343"
+    RECORD_BG = "#5a5a5a"
     CARD_BG = "#2d2d2d"
     FG = "white"
     MUTED_FG = "#b3b3b3"
@@ -131,6 +133,8 @@ class LLMWindow(tk.Toplevel, ResizableWindowMixin):
         self._busy = False
         self._reply_queue = None
         self._stream_started = False
+        self.recorder = SpeakerRecorder()
+        self._recording_ui = False
         self._init_drag_state()
 
         self.title("LLM")
@@ -210,6 +214,12 @@ class LLMWindow(tk.Toplevel, ResizableWindowMixin):
         )
         self.send_btn.pack(side=tk.RIGHT, ipadx=12, ipady=4)
 
+        self.record_btn = tk.Button(
+            input_frame, text="Record", bg=Theme.BUTTON_BG, fg=Theme.FG, bd=0, font=self.FONT,
+            activebackground=Theme.BAR_BG, activeforeground=Theme.FG, command=self.toggle_record,
+        )
+        self.record_btn.pack(side=tk.RIGHT, padx=(0, 6), ipadx=10, ipady=4)
+
     def _build_chat(self):
         chat_frame = tk.Frame(self.content_frame, bg=Theme.CONTENT_BG)
         chat_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=(5, 0))
@@ -250,6 +260,10 @@ class LLMWindow(tk.Toplevel, ResizableWindowMixin):
         )
         self.chat_display.tag_configure(
             "thinking", font=self.FONT_ITALIC, foreground=Theme.MUTED_FG, background=Theme.CONTENT_BG,
+            lmargin1=12, lmargin2=12, spacing1=8, spacing3=8,
+        )
+        self.chat_display.tag_configure(
+            "status", font=self.FONT_ITALIC, foreground=Theme.MUTED_FG, background=Theme.CONTENT_BG,
             lmargin1=12, lmargin2=12, spacing1=8, spacing3=8,
         )
         self.chat_display.tag_configure("sel", background="#4a5a6a", foreground=Theme.FG)
@@ -299,17 +313,92 @@ class LLMWindow(tk.Toplevel, ResizableWindowMixin):
         if not user_text:
             return
 
+        self.prompt_entry.delete(0, tk.END)
+        self.send_text(user_text)
+
+    def send_text(self, user_text):
+        if self._busy or not user_text:
+            return
+
         self._busy = True
         self._stream_started = False
         self._reply_queue = queue.Queue()
         self._insert_message(user_text, is_user=True)
-        self.prompt_entry.delete(0, tk.END)
         self.prompt_entry.configure(state=tk.DISABLED)
         self.send_btn.configure(state=tk.DISABLED)
         self._show_thinking()
 
         threading.Thread(target=self._stream_worker, args=(user_text,), daemon=True).start()
         self.after(80, self._poll_queue)
+
+    def toggle_record(self):
+        if self._recording_ui:
+            self._recording_ui = False
+            self.recorder.stop()
+            self.record_btn.configure(text="Transcribing...", state=tk.DISABLED)
+            self._show_transcribing()
+        else:
+            self._recording_ui = True
+            self.recorder.start()
+            self.record_btn.configure(text="Stop", bg=Theme.RECORD_BG)
+            self.after(200, self._poll_speech)
+
+    def _show_transcribing(self):
+        stick = self._at_bottom()
+        self.chat_display.insert(tk.END, "Transcribing audio...", "status")
+        if stick:
+            self.chat_display.see(tk.END)
+
+    def _hide_transcribing(self):
+        ranges = self.chat_display.tag_ranges("status")
+        if not ranges:
+            return
+        self.chat_display.delete(ranges[0], ranges[1])
+
+    def _poll_speech(self):
+        if not self.winfo_exists():
+            return
+
+        try:
+            while True:
+                kind, payload = self.recorder.results.get_nowait()
+                if kind == "done":
+                    self._on_transcript(payload)
+                    return
+                if kind == "error":
+                    self._on_speech_error(payload)
+                    return
+        except queue.Empty:
+            pass
+
+        self.after(200, self._poll_speech)
+
+    def _on_transcript(self, text):
+        self._hide_transcribing()
+        self._reset_record_btn()
+
+        if not text:
+            return
+
+        if self._busy:
+            existing = self.prompt_entry.get().strip()
+            self.prompt_entry.delete(0, tk.END)
+            self.prompt_entry.insert(0, f"{existing} {text}" if existing else text)
+        else:
+            self.send_text(text)
+
+    def _on_speech_error(self, message):
+        self._hide_transcribing()
+        self._reset_record_btn()
+        self._insert_message(f"[Recording error: {message}]", is_user=False)
+
+    def _reset_record_btn(self):
+        self._recording_ui = False
+        self.record_btn.configure(text="Record", bg=Theme.BUTTON_BG, state=tk.NORMAL)
+
+    def destroy(self):
+        self.recorder.abort()
+        super().destroy()
 
     def _stream_worker(self, prompt):
         try:
