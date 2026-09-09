@@ -1,7 +1,8 @@
 import tkinter as tk
 from capture import make_window_invisible
+from llm_overlay import ResizableWindowMixin, Theme
 
-class PopOutNote(tk.Toplevel):
+class PopOutNote(tk.Toplevel,ResizableWindowMixin):
     def __init__(self, main_app, note_id, title, body, active_type):
         super().__init__(main_app)
  
@@ -14,17 +15,36 @@ class PopOutNote(tk.Toplevel):
         self.configure(bg="#1e1e1e")
         self.attributes("-topmost", True)
         self.overrideredirect(True)
+        self._init_drag_state()
 
-     
+
         make_window_invisible(self)
 
         self.build_ui(title, body)
 
     def build_ui(self, title, body):
        
+        
+        left_edge = tk.Frame(self, width=self.EDGE_SIZE, bg=Theme.BG, cursor="size_we")
+        left_edge.pack(side=tk.LEFT, fill=tk.Y)
+        self._bind_resize_edge(left_edge, "w")
+
+        right_edge = tk.Frame(self, width=self.EDGE_SIZE, bg=Theme.BG, cursor="size_we")
+        right_edge.pack(side=tk.RIGHT, fill=tk.Y)
+        self._bind_resize_edge(right_edge, "e")
+
+
+        bottom_edge = tk.Frame(self, bg=Theme.BG, height=self.EDGE_SIZE + 6, cursor="size_nw_se")
+        bottom_edge.pack(fill=tk.X, side=tk.BOTTOM)
+        self._bind_resize_edge(bottom_edge, "se")
+
         title_bar = tk.Frame(self, bg="#2d2d2d", height=24)
         title_bar.pack(fill=tk.X, side=tk.TOP)
         title_bar.pack_propagate(False)
+
+        top_edge = tk.Frame(title_bar, height=4, bg="#2d2d2d", cursor="size_ns")
+        top_edge.pack(fill=tk.X, side=tk.TOP)
+        self._bind_resize_edge(top_edge, "n")
 
         title_label = tk.Label(
             title_bar, 
@@ -35,6 +55,8 @@ class PopOutNote(tk.Toplevel):
         )
         title_label.pack(side=tk.LEFT, padx=4)
 
+
+
         close_btn = tk.Button(title_bar, text="✕", bg="#2d2d2d", fg="white", bd=0, command=self.close_popout)
         close_btn.pack(side=tk.RIGHT, padx=4)
 
@@ -44,7 +66,10 @@ class PopOutNote(tk.Toplevel):
         title_label.bind("<ButtonPress-1>", self.start_drag)
         title_label.bind("<B1-Motion>", self.do_drag)
 
-   
+
+
+        
+
         self.pop_editor = tk.Text(
             self, 
             bg="#1e1e1e", 
@@ -94,3 +119,6 @@ class PopOutNote(tk.Toplevel):
     def close_popout(self):
         self.main_app.open_popouts.pop(self.note_id, None)
         self.destroy()
+
+
+    

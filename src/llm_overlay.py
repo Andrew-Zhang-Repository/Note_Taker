@@ -275,7 +275,6 @@ class LLMWindow(tk.Toplevel, ResizableWindowMixin):
         return self.chat_display.yview()[1] >= 0.995
 
     def _readonly_key(self, event):
-        # Allow Ctrl+C / Ctrl+A, selection and navigation keys; block all editing.
         if event.state & 0x4 and event.keysym.lower() in ("c", "a"):
             return None
         if event.keysym in ("Shift_L", "Shift_R", "Control_L", "Control_R",
