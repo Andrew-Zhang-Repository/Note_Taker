@@ -127,7 +127,7 @@ class LLMWindow(tk.Toplevel, ResizableWindowMixin):
     FONT_BOLD = ("Segoe UI", 10, "bold")
     FONT_ITALIC = ("Segoe UI", 10, "italic")
 
-    def __init__(self, master, model, model_name="AI"):
+    def __init__(self, master, model,  store, model_name="AI"):
         super().__init__(master)
 
         self.model = model
@@ -138,6 +138,7 @@ class LLMWindow(tk.Toplevel, ResizableWindowMixin):
         self.recorder = SpeakerRecorder()
         self._recording_ui = False
         self._init_drag_state()
+        self.store = store
 
         self.title("LLM")
         self.geometry("450x600+500+150")
@@ -145,7 +146,10 @@ class LLMWindow(tk.Toplevel, ResizableWindowMixin):
 
         self.overrideredirect(True)
         self.attributes("-topmost", True)
-        self.attributes("-alpha", 0.92)
+        settings = self.store.config_settings.get("ui_settings", {}).get("llm", {})
+        saved_opacity = settings.get("opacity", 0.85)
+        self.attributes("-alpha", saved_opacity)
+        self.win_type = "llm"
 
         self._build_chrome()
         self._build_input()

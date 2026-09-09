@@ -2,13 +2,21 @@ import tkinter as tk
 from capture import make_window_invisible
 from llm_overlay import ResizableWindowMixin, Theme
 
+
 class PopOutNote(tk.Toplevel,ResizableWindowMixin):
-    def __init__(self, main_app, note_id, title, body, active_type):
+    def __init__(self, main_app, note_id, title, body, active_type,store):
         super().__init__(main_app)
  
         self.main_app = main_app
         self.note_id = note_id
         self.active_type = active_type
+        self.store = store
+
+        settings = self.store.config_settings.get("ui_settings", {}).get("popout", {})
+        saved_opacity = settings.get("opacity", 0.85)
+        self.attributes("-alpha", saved_opacity)
+        self.win_type = "popout"
+        
 
      
         self.geometry("320x260+500+200")

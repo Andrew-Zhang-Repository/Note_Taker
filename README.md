@@ -7,4 +7,6 @@ Note Taking Desktop Application With Privacy Settings
 - Input of more types than general
 - Better placements of buttons
 - Auto save features
+- Images
+- Text colors
 

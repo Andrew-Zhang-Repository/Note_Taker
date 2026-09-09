@@ -21,6 +21,10 @@ class note_store:
         self.types_dir = self.path / "types" 
         """
         self.config = {}
+        
+
+        with open(self.config_path, "r") as file:
+            self.config_settings  = json.load(file)
 
         self.registry_management()
 
@@ -39,7 +43,12 @@ class note_store:
         
         if not self.config or "types" not in self.config:
             self.config = {
-                "types": ["General"]
+                "types": ["General"],
+                "ui_settings": {
+                    "main": { "opacity": 0.85},
+                    "popout": { "opacity": 1.0},
+                    "llm": { "opacity": 0.70}
+                }
             }
            
             self.atomic_save(self.config, self.config_path)
