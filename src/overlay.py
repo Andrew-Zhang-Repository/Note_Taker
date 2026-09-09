@@ -10,6 +10,7 @@ import google.generativeai as genai
 import os
 from dotenv import load_dotenv
 from llm_overlay import Theme, ResizableWindowMixin, LLMWindow
+from pop_out_overlay import PopOutNote
 
 load_dotenv()
 
@@ -41,7 +42,6 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
         self.model = None
         self.model_name = None
         self.llm_win = None
-
         self.move_window()
 
         make_window_invisible(self)
@@ -118,6 +118,9 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
 
         self.save_btn = tk.Button(self.content_frame, text="Save Note", bg=Theme.BUTTON_BG, fg=Theme.FG, bd=0, command=self.save_note, cursor="hand2")
         self.save_btn.pack(side=tk.BOTTOM, fill=tk.X, padx=5, pady=5)
+
+        self.save_btn = tk.Button(self.content_frame, text="Pop Out Note", bg=Theme.BUTTON_BG, fg=Theme.FG, bd=0, command=self.pop_out_note, cursor="hand2")
+        self.save_btn.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 
         self.editor = tk.Text(self.content_frame, bg=Theme.BG, fg=Theme.FG, bd=0, wrap=tk.WORD, insertbackground="white")
         self.editor.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
@@ -207,6 +210,34 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
 
         self._get_model()
         self.llm_win = LLMWindow(self, self.model, self.model_name)
+
+
+    def pop_out_note(self):
+        if not getattr(self, 'open_popouts', None):
+            self.open_popouts = {} 
+
+        if not self.active_note_id:
+            return
+
+        note_id = self.active_note_id
+
+        if note_id in self.open_popouts and self.open_popouts[note_id].winfo_exists():
+            self.open_popouts[note_id].lift()
+            return
+
+        selected_note = next((n for n in self.current_notes if n["id"] == note_id), None)
+        if not selected_note:
+            return
+
+        pop_win = PopOutNote(
+            main_app=self, 
+            note_id=note_id, 
+            title=selected_note['title'], 
+            body=selected_note.get("note_body", ""), 
+            active_type=self.active_type
+        )
+        
+        self.open_popouts[note_id] = pop_win
 
 
 if __name__ == "__main__":
