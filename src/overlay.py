@@ -89,6 +89,9 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
         self.content_frame = tk.Frame(self.inner_container, bg=Theme.CONTENT_BG)
         self.content_frame.pack(expand=True, fill="both", padx=5, pady=5)
 
+        self.recolor_widgets = [self, self.main_container, left_edge, right_edge,
+                                self.inner_container, top_edge, resize_frame]
+
         self.notes_ui_management()
 
     def notes_ui_management(self):
@@ -103,7 +106,7 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
         self.ui_manager = UIManager(self, self.store)
 
         saved_bg = settings.get("bg_color", "#1e1e1e")
-        self.ui_manager.apply_bg_recursively(self, saved_bg)
+        self.ui_manager.apply_bg(self, saved_bg)
 
         if self.store.config.get("types"):
             self.active_type = self.store.config["types"][0]

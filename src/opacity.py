@@ -20,10 +20,10 @@ class UIManager:
         self.store = store
         self._save_timers = {}
 
-        self.bg_colors = ["#1e1e1e", "#000000", "#111b21", "#1e1b2e"]
+        self.bg_colors = ["#1e1e1e", "#000000", "#111b21", "#1e1b2e", "#faf9fc", "#f81414"]
         self.root.bind_all("<Control-Up>", self.increase_opacity)
         self.root.bind_all("<Control-Down>", self.decrease_opacity)
-        self.root.bind_all("<Control-b>", self.cycle_bg_color) # New hotkey for Backgrounds!
+        self.root.bind_all("<Control-b>", self.cycle_bg_color) 
 
     def cycle_bg_color(self, event=None):
         if not event: return
@@ -39,20 +39,16 @@ class UIManager:
             next_index = 0
         new_bg = self.bg_colors[next_index]
 
-        self.apply_bg_recursively(target_win, new_bg)
+        self.apply_bg(target_win, new_bg)
         self.save_setting_to_disk(win_type, "bg_color", new_bg)
 
-    def apply_bg_recursively(self, widget, color):
-        try:
-            if widget.winfo_class() not in ['Button', 'Scrollbar']:
-                widget.config(bg=color)
-        except:
-            pass
-
-        for child in widget.winfo_children():
-            if child.winfo_class() == 'Toplevel':
-                continue
-            self.apply_bg_recursively(child, color)
+    def apply_bg(self, target_win, color):
+        for widget in getattr(target_win, "recolor_widgets", []):
+            try:
+                if widget.winfo_exists():
+                    widget.config(bg=color)
+            except tk.TclError:
+                pass
 
     def increase_opacity(self, event=None):
         if not event: return

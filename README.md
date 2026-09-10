@@ -9,5 +9,4 @@ Note Taking Desktop Application With Privacy Settings
 - Auto save features
 - Images
 - Text colors
-- Colors of the overlays
 

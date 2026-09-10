@@ -95,7 +95,9 @@ class PopOutNote(tk.Toplevel,ResizableWindowMixin):
         self.pop_save_btn = tk.Button(self, text="Save", bg="#333333", fg="white", bd=0, command=self.save_popout)
         self.pop_save_btn.pack(side=tk.BOTTOM, fill=tk.X, padx=6, pady=4)
 
-        self.UIManager.apply_bg_recursively(self, self.saved_bg)
+        self.recolor_widgets = [self, left_edge, right_edge, bottom_edge]
+
+        self.UIManager.apply_bg(self, self.saved_bg)
 
 
     def start_drag(self, e):

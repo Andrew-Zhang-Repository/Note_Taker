@@ -203,7 +203,10 @@ class LLMWindow(tk.Toplevel, ResizableWindowMixin):
         self.content_frame = tk.Frame(inner_container, bg=Theme.CONTENT_BG)
         self.content_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-        self.ui_manager.apply_bg_recursively(self, self.saved_bg)
+        self.recolor_widgets = [self, main_container, left_edge, right_edge,
+                                inner_container, top_edge, bottom_edge]
+
+        self.ui_manager.apply_bg(self, self.saved_bg)
 
     def _build_input(self):
         input_frame = tk.Frame(self.content_frame, bg=Theme.CONTENT_BG)
