@@ -8,5 +8,4 @@ Note Taking Desktop Application With Privacy Settings
 - Better placements of buttons
 - Auto save features
 - Images
-- Text colors
 

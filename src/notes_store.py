@@ -45,9 +45,9 @@ class note_store:
             self.config = {
                 "types": ["General"],
                 "ui_settings": {
-                    "main": { "opacity": 0.85, "bg_color": "#1e1b2e"},
-                    "popout": { "opacity": 1.0, "bg_color": "#1e1b2e"},
-                    "llm": { "opacity": 0.70, "bg_color": "#1e1b2e"}
+                    "main": { "opacity": 0.85, "bg_color": "#1e1b2e", "text_color" :"#1e1b2e" },
+                    "popout": { "opacity": 1.0, "bg_color": "#1e1b2e", "text_color" :"#1e1b2e"},
+                    "llm": { "opacity": 0.70, "bg_color": "#1e1b2e", "text_color" :"#1e1b2e"}
                 }
             }
            

@@ -11,7 +11,7 @@ import os
 from dotenv import load_dotenv
 from llm_overlay import Theme, ResizableWindowMixin, LLMWindow
 from pop_out_overlay import PopOutNote
-from opacity import UIManager
+from ui_manager import UIManager
 
 load_dotenv()
 
@@ -38,11 +38,6 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
 
         self.overrideredirect(True)
         self.attributes("-topmost", True)
-        
-
-
-        self.text_colors = ["white", "#10a37f", "#ffd700", "#00ffff", "#ff99cc"] 
-        self.color_index = 0
 
         self.model = None
         self.model_name = None
@@ -108,6 +103,8 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
         saved_bg = settings.get("bg_color", "#1e1e1e")
         self.ui_manager.apply_bg(self, saved_bg)
 
+        
+
         if self.store.config.get("types"):
             self.active_type = self.store.config["types"][0]
 
@@ -144,6 +141,10 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
         self.editor = tk.Text(self.content_frame, bg=Theme.BG, fg=Theme.FG, bd=0, wrap=tk.WORD, insertbackground="white")
         self.editor.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
+
+        text_color = settings.get("text_color", "#1e1e1e")
+        self.ui_manager.apply_fg_recursively(self, text_color)
+        
         self.refresh_note_list()
 
     def refresh_note_list(self):

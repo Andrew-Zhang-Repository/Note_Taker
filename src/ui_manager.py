@@ -20,6 +20,10 @@ class UIManager:
         self.store = store
         self._save_timers = {}
 
+        self.text_colors = ["white", "#10a37f", "#ffd700", "#00ffff", "#ff99cc"]
+
+        self.root.bind_all("<Control-y>", self.cycle_text_color)
+
         self.bg_colors = ["#1e1e1e", "#000000", "#111b21", "#1e1b2e", "#faf9fc", "#f81414"]
         self.root.bind_all("<Control-Up>", self.increase_opacity)
         self.root.bind_all("<Control-Down>", self.decrease_opacity)
@@ -94,3 +98,34 @@ class UIManager:
             
         settings["ui_settings"][win_type][setting_key] = value
         self.store.atomic_save(settings, self.store.config_path)
+
+
+    def cycle_text_color(self, event=None):
+        if not event: return
+        target_win = event.widget.winfo_toplevel()
+        win_type = getattr(target_win, "win_type", "main")
+        settings = self.store.config_settings.get("ui_settings", {}).get(win_type, {})
+        current_fg = settings.get("text_color", "white")
+
+        try:
+            next_index = (self.text_colors.index(current_fg) + 1) % len(self.text_colors)
+        except ValueError:
+            next_index = 0
+        new_fg = self.text_colors[next_index]
+
+        self.apply_fg_recursively(target_win, new_fg)
+        self.save_setting_to_disk(win_type, "text_color", new_fg)
+
+        return "break"
+
+    def apply_fg_recursively(self, widget, color):
+        try:
+          
+            if widget.winfo_class() == 'Text':
+                widget.config(fg=color,insertbackground=color)
+        except:
+            pass
+        for child in widget.winfo_children():
+            if child.winfo_class() == 'Toplevel':
+                continue
+            self.apply_fg_recursively(child, color)

@@ -17,6 +17,7 @@ class PopOutNote(tk.Toplevel,ResizableWindowMixin):
         saved_opacity = settings.get("opacity", 0.85)
         self.attributes("-alpha", saved_opacity)
         self.win_type = "popout"
+        self.text_color = settings.get("text_color","#1e1e1e")
 
         
      
@@ -98,6 +99,7 @@ class PopOutNote(tk.Toplevel,ResizableWindowMixin):
         self.recolor_widgets = [self, left_edge, right_edge, bottom_edge]
 
         self.UIManager.apply_bg(self, self.saved_bg)
+        self.UIManager.apply_fg_recursively(self, self.text_color)
 
 
     def start_drag(self, e):
