@@ -132,11 +132,14 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
         self.ai_btn = tk.Button(self.content_frame, text="Ask AI", bg="#737575", fg=Theme.FG, bd=0, command=self.open_llm_window, cursor="hand2")
         self.ai_btn.pack(side=tk.BOTTOM, fill=tk.X, expand=True, padx=(2, 2))
 
-        self.save_btn = tk.Button(self.content_frame, text="Save Note", bg=Theme.BUTTON_BG, fg=Theme.FG, bd=0, command=self.save_note, cursor="hand2")
-        self.save_btn.pack(side=tk.BOTTOM, fill=tk.X, padx=5, pady=5)
 
         self.save_btn = tk.Button(self.content_frame, text="Pop Out Note", bg=Theme.BUTTON_BG, fg=Theme.FG, bd=0, command=self.pop_out_note, cursor="hand2")
         self.save_btn.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+
+        self.save_btn = tk.Button(self.content_frame, text="Save Note", bg=Theme.BUTTON_BG, fg=Theme.FG, bd=0, command=self.save_note, cursor="hand2")
+        self.save_btn.pack(side=tk.BOTTOM, fill=tk.X, padx=5, pady=5)
+
+        
 
         self.editor = tk.Text(self.content_frame, bg=Theme.BG, fg=Theme.FG, bd=0, wrap=tk.WORD, insertbackground="white")
         self.editor.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
@@ -144,7 +147,7 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
 
         text_color = settings.get("text_color", "#1e1e1e")
         self.ui_manager.apply_fg_recursively(self, text_color)
-        
+
         self.refresh_note_list()
 
     def refresh_note_list(self):
