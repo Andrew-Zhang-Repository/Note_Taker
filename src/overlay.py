@@ -11,7 +11,7 @@ import os
 from dotenv import load_dotenv
 from llm_overlay import Theme, ResizableWindowMixin, LLMWindow
 from pop_out_overlay import PopOutNote
-from opacity import OpacityManager
+from opacity import UIManager
 
 load_dotenv()
 
@@ -100,7 +100,10 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
         self.attributes("-alpha", saved_opacity)
 
         self.win_type = "main"
-        self.opacity_manager = OpacityManager(self, self.store)
+        self.ui_manager = UIManager(self, self.store)
+
+        saved_bg = settings.get("bg_color", "#1e1e1e")
+        self.ui_manager.apply_bg_recursively(self, saved_bg)
 
         if self.store.config.get("types"):
             self.active_type = self.store.config["types"][0]
@@ -222,7 +225,7 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
             return
 
         self._get_model()
-        self.llm_win = LLMWindow(self, self.model,self.store, self.model_name)
+        self.llm_win = LLMWindow(self, self.model,self.store, self.ui_manager, self.model_name)
 
 
     def pop_out_note(self):
@@ -248,7 +251,8 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
             title=selected_note['title'], 
             body=selected_note.get("note_body", ""), 
             active_type=self.active_type,
-            store = self.store
+            store = self.store,
+            UIManager = self.ui_manager
         )
         
         self.open_popouts[note_id] = pop_win

@@ -127,7 +127,7 @@ class LLMWindow(tk.Toplevel, ResizableWindowMixin):
     FONT_BOLD = ("Segoe UI", 10, "bold")
     FONT_ITALIC = ("Segoe UI", 10, "italic")
 
-    def __init__(self, master, model,  store, model_name="AI"):
+    def __init__(self, master, model,  store, ui_manager, model_name="AI"):
         super().__init__(master)
 
         self.model = model
@@ -139,6 +139,7 @@ class LLMWindow(tk.Toplevel, ResizableWindowMixin):
         self._recording_ui = False
         self._init_drag_state()
         self.store = store
+        self.ui_manager = ui_manager
 
         self.title("LLM")
         self.geometry("450x600+500+150")
@@ -150,6 +151,7 @@ class LLMWindow(tk.Toplevel, ResizableWindowMixin):
         saved_opacity = settings.get("opacity", 0.85)
         self.attributes("-alpha", saved_opacity)
         self.win_type = "llm"
+        self.saved_bg = settings.get("bg_color", "#1e1e1e")
 
         self._build_chrome()
         self._build_input()
@@ -200,6 +202,8 @@ class LLMWindow(tk.Toplevel, ResizableWindowMixin):
 
         self.content_frame = tk.Frame(inner_container, bg=Theme.CONTENT_BG)
         self.content_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        self.ui_manager.apply_bg_recursively(self, self.saved_bg)
 
     def _build_input(self):
         input_frame = tk.Frame(self.content_frame, bg=Theme.CONTENT_BG)

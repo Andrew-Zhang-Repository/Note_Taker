@@ -4,20 +4,21 @@ from llm_overlay import ResizableWindowMixin, Theme
 
 
 class PopOutNote(tk.Toplevel,ResizableWindowMixin):
-    def __init__(self, main_app, note_id, title, body, active_type,store):
+    def __init__(self, main_app, note_id, title, body, active_type,store,UIManager):
         super().__init__(main_app)
  
         self.main_app = main_app
         self.note_id = note_id
         self.active_type = active_type
         self.store = store
+        self.UIManager = UIManager
 
         settings = self.store.config_settings.get("ui_settings", {}).get("popout", {})
         saved_opacity = settings.get("opacity", 0.85)
         self.attributes("-alpha", saved_opacity)
         self.win_type = "popout"
-        
 
+        
      
         self.geometry("320x260+500+200")
         self.configure(bg="#1e1e1e")
@@ -25,7 +26,7 @@ class PopOutNote(tk.Toplevel,ResizableWindowMixin):
         self.overrideredirect(True)
         self._init_drag_state()
 
-
+        self.saved_bg = settings.get("bg_color", "#1e1e1e")
         make_window_invisible(self)
 
         self.build_ui(title, body)
@@ -93,6 +94,8 @@ class PopOutNote(tk.Toplevel,ResizableWindowMixin):
     
         self.pop_save_btn = tk.Button(self, text="Save", bg="#333333", fg="white", bd=0, command=self.save_popout)
         self.pop_save_btn.pack(side=tk.BOTTOM, fill=tk.X, padx=6, pady=4)
+
+        self.UIManager.apply_bg_recursively(self, self.saved_bg)
 
 
     def start_drag(self, e):
