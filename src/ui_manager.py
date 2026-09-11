@@ -22,11 +22,11 @@ class UIManager:
 
         self.text_colors = ["white", "#10a37f", "#ffd700", "#00ffff", "#ff99cc"]
 
-        self.root.bind_all("<Control-Shift-t>", self.cycle_text_color)
+        self.root.bind_all("<Control-Shift-T>", self.cycle_text_color)
 
         self.bg_colors = ["#1e1e1e", "#000000", "#111b21", "#1e1b2e", "#faf9fc", "#f81414"]
-        self.root.bind_all("<Control-Up>", self.increase_opacity)
-        self.root.bind_all("<Control-Down>", self.decrease_opacity)
+        self.root.bind_all("<Control-Shift-U>", self.increase_opacity)
+        self.root.bind_all("<Control-Shift-D>", self.decrease_opacity)
         self.root.bind_all("<Control-b>", self.cycle_bg_color) 
 
     def cycle_bg_color(self, event=None):

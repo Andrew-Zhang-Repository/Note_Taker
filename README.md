@@ -3,9 +3,7 @@ Note Taking Desktop Application With Privacy Settings
 
 
 # FIX/Additions to add:
-- Vertical cursor appearing in places it shouldnt
-- Input of more types than general
+- Vertical cursor appearing in llm window
 - Better placements of buttons
-- Images for popout
-- Add better hot keys for tkinter to not clash with prexisting commands
+- Function to inject key and download fasterwhisper
 

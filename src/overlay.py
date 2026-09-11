@@ -12,17 +12,15 @@ from dotenv import load_dotenv
 from llm_overlay import Theme, ResizableWindowMixin, LLMWindow
 from pop_out_overlay import PopOutNote
 from ui_manager import UIManager
-import uuid
-import re
-from PIL import Image, ImageTk, ImageGrab
-
+from rich_text import RichTextMixin
+from pathlib import Path
 load_dotenv()
 
 
 
 
 
-class OverlayWindow(tk.Tk, ResizableWindowMixin):
+class OverlayWindow(tk.Tk, ResizableWindowMixin, RichTextMixin):
 
     # Position margins
     SCREEN_MARGIN = 20
@@ -42,44 +40,13 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
         self.overrideredirect(True)
         self.attributes("-topmost", True)
 
+        self.bind_all("<Control-Shift-X>", lambda event: self.destroy())
+
         self.model = None
         self.model_name = None
         self.llm_win = None
         self.move_window()
-
         make_window_invisible(self)
-
-    def handle_paste(self, event=None):
-        try:
-            clipboard_img = ImageGrab.grabclipboard()
-            
-            if clipboard_img and isinstance(clipboard_img, Image.Image):
-                ext = ".png"
-                unique_name = f"img_{uuid.uuid4().hex}{ext}"
-                local_path = os.path.join(self.store.image_dir, unique_name)
-                clipboard_img.save(local_path)
-                
-                clipboard_img.thumbnail((400, 400))
-                photo = ImageTk.PhotoImage(clipboard_img)
-                self.inline_images[local_path] = photo
-                
-                self.editor.image_create(tk.INSERT, image=photo, name=local_path)
-                
-                return "break"
-                
-        except Exception as e:
-            print("Paste error:", e)
-
-
-    def get_rich_text(self):
-        raw_content = ""
-        for key, value, index in self.editor.dump("1.0", tk.END, text=True, image=True):
-            if key == "text":
-                raw_content += value
-            elif key == "image":
-                raw_content += f"[IMG:{value}]"
-                
-        return raw_content.strip()
 
     def move_window(self):
 
@@ -124,6 +91,16 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
 
         self.notes_ui_management()
 
+
+    def get_available_types(self):
+        types = []
+        if os.path.exists(self.store.types_dir):
+            for filename in os.listdir(self.store.types_dir):
+                if filename.endswith(".json"):
+                    # Remove the ".json" part so it looks clean in the dropdown
+                    types.append(filename[:-5]) 
+        return types
+
     def notes_ui_management(self):
         self.store = note_store()
 
@@ -151,7 +128,7 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
         top_bar = tk.Frame(self.content_frame, bg=Theme.CONTENT_BG)
         top_bar.pack(fill=tk.X, pady=5)
 
-        self.type_combo = ttk.Combobox(top_bar, values=self.store.config.get("types", []), state="readonly")
+        self.type_combo = ttk.Combobox(top_bar, values=self.get_available_types(), state="readonly")
         self.type_combo.set(self.active_type)
         self.type_combo.pack(side=tk.LEFT, padx=5)
         self.type_combo.bind("<<ComboboxSelected>>", self.on_type_change)
@@ -169,20 +146,25 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
         self.ai_btn = tk.Button(self.content_frame, text="Ask AI", bg="#737575", fg=Theme.FG, bd=0, command=self.open_llm_window, cursor="hand2")
         self.ai_btn.pack(side=tk.BOTTOM, fill=tk.X, expand=True, padx=(2, 2))
 
+        
+
+        self.save_btn = tk.Button(self.content_frame, text="Delete Pictures in Image Folder", bg=Theme.BUTTON_BG, fg=Theme.FG, bd=0, command=self.wipe_all_pics, cursor="hand2")
+        self.save_btn.pack(side=tk.BOTTOM, fill=tk.X, padx=5, pady=5)
+
+
 
         self.save_btn = tk.Button(self.content_frame, text="Pop Out Note", bg=Theme.BUTTON_BG, fg=Theme.FG, bd=0, command=self.pop_out_note, cursor="hand2")
         self.save_btn.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 
+        self.save_btn = tk.Button(self.content_frame, text="New Folder", bg=Theme.BUTTON_BG, fg=Theme.FG, bd=0, command=self.new_type, cursor="hand2")
+        self.save_btn.pack(side=tk.BOTTOM, fill=tk.X, padx=5, pady=5)
+
         
 
-        self.editor = tk.Text(self.content_frame, bg=Theme.BG, fg=Theme.FG, bd=0, wrap=tk.WORD, insertbackground="white",undo=True)
-        self.editor.bind("<KeyRelease>", self.save_note)
+        self.editor = tk.Text(self.content_frame, bg=Theme.BG, fg=Theme.FG, bd=0, wrap=tk.WORD, insertbackground="white", state = tk.DISABLED)
         self._auto_save_timer = None
         self.editor.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-
-        self.editor.bind("<Control-z>", lambda e: (self.editor.edit_undo(), "break")[1])
-        self.inline_images = {}
-        self.editor.bind("<Control-v>", self.handle_paste)
+        self._init_rich_text(self.editor)
 
 
         text_color = settings.get("text_color", "#1e1e1e")
@@ -198,10 +180,14 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
         for note in self.current_notes:
             self.note_listbox.insert(tk.END, note["title"])
 
+    def _set_editor_enabled(self, enabled):
+        self.editor.configure(state=tk.NORMAL if enabled else tk.DISABLED)
+
     def on_type_change(self, event):
         self.active_type = self.type_combo.get()
-        self.editor.delete("1.0", tk.END)
+        self.rt_load("")
         self.active_note_id = None
+        self._set_editor_enabled(False)
         self.refresh_note_list()
 
     def create_new_note(self):
@@ -218,25 +204,8 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
             self.store.add_note(self.active_type, note_title, "")
             self.refresh_note_list()
 
-    def load_rich_text(self, text_data):
-        self.editor.delete("1.0", tk.END)
-        self.inline_images.clear()
-        
-        parts = re.split(r'(\[IMG:.*?\])', text_data)
-        
-        for part in parts:
-            if part.startswith("[IMG:") and part.endswith("]"):
-                img_path = part[5:-1]
-                
-                if os.path.exists(img_path):
-                    img = Image.open(img_path)
-                    img.thumbnail((400, 400))
-                    photo = ImageTk.PhotoImage(img)
-                    self.inline_images[img_path] = photo
-                    
-                    self.editor.image_create(tk.INSERT, image=photo, name=img_path)
-            else:
-                self.editor.insert(tk.END, part)
+    def rt_notify_change(self):
+        self.save_note()
 
     def on_note_select(self, event):
         selection = self.note_listbox.curselection()
@@ -247,7 +216,8 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
         selected_note = self.current_notes[index]
         self.active_note_id = selected_note["id"]
 
-        self.load_rich_text(selected_note["note_body"])
+        self.rt_load(selected_note["note_body"])
+        self._set_editor_enabled(True)
 
     def save_note(self, event = None):
        
@@ -260,13 +230,32 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
         if not self.active_note_id:
             return
 
-        new_text = self.get_rich_text()
+        new_text = self.rt_get_text()
         self.store.update_note(self.active_note_id, self.active_type, new_text)
 
         for note in self.current_notes:
             if note["id"] == self.active_note_id:
                 note["note_body"] = new_text
                 break
+
+    def new_type(self):
+
+        confirm = simpledialog.askstring("New Category", "Enter New Type Name:")
+        if confirm:
+            success = self.store.create_new_type(confirm)
+
+            if success:
+                updated_types = self.get_available_types()
+                self.type_combo["values"] = updated_types
+                self.type_combo.set(success)
+                self.active_type = success
+                self.active_note_id = None
+                self.rt_load("")
+                self._set_editor_enabled(False)
+                self.refresh_note_list() 
+            else:
+                messagebox.showerror("Error", f"Could not create '{success}'. It might already exist.")
+
 
 
     def delete_note(self):
@@ -279,7 +268,8 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
         if confirm:
             self.store.delete_note(self.active_note_id, self.active_type)
             self.active_note_id = None
-            self.editor.delete("1.0", tk.END)
+            self.rt_load("")
+            self._set_editor_enabled(False)
             self.refresh_note_list()
 
     def _get_model(self):
@@ -327,6 +317,13 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
         )
         
         self.open_popouts[note_id] = pop_win
+
+    def wipe_all_pics(self):
+
+        for file in self.store.image_dir.iterdir():
+            if file.is_file() and file.suffix.lower()==".png":
+                file.unlink()  
+               
 
 
 if __name__ == "__main__":

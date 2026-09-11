@@ -60,6 +60,33 @@ class note_store:
             initial_data = {"name": "General", "notes": []}
             self.atomic_save(initial_data, self.types_dir / "General.json")
 
+    def create_new_type(self,name):
+
+        safe_name = re.sub(r'[\\/*?:"<>|]', "", name).strip()
+    
+        if not safe_name:
+            print("Error: Name cannot be empty or just special characters.")
+            return False
+            
+        dir_path = Path(self.types_dir)
+        file_path = dir_path / f"{safe_name}.json"
+        
+        if file_path.exists():
+            print(f"Error: A category named '{safe_name}' already exists.")
+            return False
+            
+        initial_data = {"name": safe_name, "notes": []}
+        self.atomic_save(initial_data, file_path)
+        
+        if not hasattr(self, 'active_types'):
+            self.active_types = []
+        if safe_name not in self.active_types:
+            self.active_types.append(safe_name)
+            
+        return True
+        
+
+
     def atomic_save(self,data, target_path):
 
         tmp_path = target_path.with_suffix(".tmp")

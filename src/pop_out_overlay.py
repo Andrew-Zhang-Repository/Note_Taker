@@ -1,9 +1,10 @@
 import tkinter as tk
 from capture import make_window_invisible
 from llm_overlay import ResizableWindowMixin, Theme
+from rich_text import RichTextMixin
 
 
-class PopOutNote(tk.Toplevel,ResizableWindowMixin):
+class PopOutNote(tk.Toplevel, ResizableWindowMixin, RichTextMixin):
     def __init__(self, main_app, note_id, title, body, active_type,store,UIManager):
         super().__init__(main_app)
  
@@ -89,10 +90,10 @@ class PopOutNote(tk.Toplevel,ResizableWindowMixin):
             font=("Segoe UI", 10),
             insertbackground="white"
         )
-        self.pop_editor.bind("<KeyRelease>", self.save_note)
         self.pop_auto_save_timer = None
         self.pop_editor.pack(fill=tk.BOTH, expand=True, padx=6, pady=(4, 0))
-        self.pop_editor.insert(tk.END, body)
+        self._init_rich_text(self.pop_editor)
+        self.rt_load(body)
 
     
         self.recolor_widgets = [self, left_edge, right_edge, bottom_edge]
@@ -111,23 +112,35 @@ class PopOutNote(tk.Toplevel,ResizableWindowMixin):
         self.geometry(f"+{x}+{y}")
 
   
-    def save_note(self, event = None):
-        new_text = self.pop_editor.get("1.0", tk.END).strip()
-        
-  
+    def rt_notify_change(self):
+        self.save_note()
+
+    def save_note(self, event=None):
+        if self.pop_auto_save_timer is not None:
+            self.after_cancel(self.pop_auto_save_timer)
+
+        self.pop_auto_save_timer = self.after(1500, self.perform_save)
+
+    def perform_save(self):
+        self.pop_auto_save_timer = None
+        new_text = self.rt_get_text()
+
         self.main_app.store.update_note(self.note_id, self.active_type, new_text)
-        
+
         for n in self.main_app.current_notes:
             if n["id"] == self.note_id:
                 n["note_body"] = new_text
                 break
-  
-        if self.main_app.active_note_id == self.note_id:
-            self.main_app.editor.delete("1.0", tk.END)
-            self.main_app.editor.insert(tk.END, new_text)
 
+        if self.main_app.active_note_id == self.note_id:
+            self.main_app.rt_load(new_text)
 
     def close_popout(self):
+        if self.pop_auto_save_timer is not None:
+            self.after_cancel(self.pop_auto_save_timer)
+            self.pop_auto_save_timer = None
+            self.perform_save()
+
         self.main_app.open_popouts.pop(self.note_id, None)
         self.destroy()
 
