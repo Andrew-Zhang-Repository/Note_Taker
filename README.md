@@ -6,6 +6,5 @@ Note Taking Desktop Application With Privacy Settings
 - Vertical cursor appearing in places it shouldnt
 - Input of more types than general
 - Better placements of buttons
-- Auto save features
 - Images
 

@@ -89,13 +89,12 @@ class PopOutNote(tk.Toplevel,ResizableWindowMixin):
             font=("Segoe UI", 10),
             insertbackground="white"
         )
+        self.pop_editor.bind("<KeyRelease>", self.save_note)
+        self.pop_auto_save_timer = None
         self.pop_editor.pack(fill=tk.BOTH, expand=True, padx=6, pady=(4, 0))
         self.pop_editor.insert(tk.END, body)
 
     
-        self.pop_save_btn = tk.Button(self, text="Save", bg="#333333", fg="white", bd=0, command=self.save_popout)
-        self.pop_save_btn.pack(side=tk.BOTTOM, fill=tk.X, padx=6, pady=4)
-
         self.recolor_widgets = [self, left_edge, right_edge, bottom_edge]
 
         self.UIManager.apply_bg(self, self.saved_bg)
@@ -112,7 +111,7 @@ class PopOutNote(tk.Toplevel,ResizableWindowMixin):
         self.geometry(f"+{x}+{y}")
 
   
-    def save_popout(self):
+    def save_note(self, event = None):
         new_text = self.pop_editor.get("1.0", tk.END).strip()
         
   
@@ -127,9 +126,6 @@ class PopOutNote(tk.Toplevel,ResizableWindowMixin):
             self.main_app.editor.delete("1.0", tk.END)
             self.main_app.editor.insert(tk.END, new_text)
 
-    
-        self.pop_save_btn.config(text="Saved!")
-        self.after(1500, lambda: self.pop_save_btn.config(text="Save"))
 
     def close_popout(self):
         self.main_app.open_popouts.pop(self.note_id, None)

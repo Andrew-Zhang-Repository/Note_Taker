@@ -136,12 +136,11 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
         self.save_btn = tk.Button(self.content_frame, text="Pop Out Note", bg=Theme.BUTTON_BG, fg=Theme.FG, bd=0, command=self.pop_out_note, cursor="hand2")
         self.save_btn.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 
-        self.save_btn = tk.Button(self.content_frame, text="Save Note", bg=Theme.BUTTON_BG, fg=Theme.FG, bd=0, command=self.save_note, cursor="hand2")
-        self.save_btn.pack(side=tk.BOTTOM, fill=tk.X, padx=5, pady=5)
-
         
 
         self.editor = tk.Text(self.content_frame, bg=Theme.BG, fg=Theme.FG, bd=0, wrap=tk.WORD, insertbackground="white")
+        self.editor.bind("<KeyRelease>", self.save_note)
+        self._auto_save_timer = None
         self.editor.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
 
@@ -190,7 +189,14 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
         self.editor.delete("1.0", tk.END)
         self.editor.insert(tk.END, selected_note["note_body"])
 
-    def save_note(self):
+    def save_note(self, event = None):
+
+        if self._auto_save_timer is not None:
+            self.after_cancel(self._auto_save_timer)
+            
+        self._auto_save_timer = self.after(1500, self.perform_auto_save)
+
+    def perform_auto_save(self):
         if not self.active_note_id:
             return
 
@@ -202,8 +208,18 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
                 note["note_body"] = new_text
                 break
 
-        self.save_btn.config(text="Saved!")
-        self.after(2000, lambda: self.save_btn.config(text="Save Note"))
+    def perform_auto_save(self):
+
+        if not self.active_note_id:
+            return
+            
+        new_text = self.editor.get("1.0", tk.END).strip()
+        self.store.update_note(self.active_note_id, self.active_type, new_text)
+
+        for note in self.current_notes:
+            if note["id"] == self.active_note_id:
+                note["note_body"] = new_text
+                break
 
     def delete_note(self):
 
