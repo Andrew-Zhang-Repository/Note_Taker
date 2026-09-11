@@ -23,10 +23,14 @@ class note_store:
         self.config = {}
         
 
+        self.registry_management()
+
         with open(self.config_path, "r") as file:
             self.config_settings  = json.load(file)
 
-        self.registry_management()
+        self.image_dir = self.path / "app_images"
+        if not os.path.exists(self.image_dir):
+            os.makedirs(self.image_dir)
 
 
     def registry_management(self):
@@ -45,9 +49,9 @@ class note_store:
             self.config = {
                 "types": ["General"],
                 "ui_settings": {
-                    "main": { "opacity": 0.85, "bg_color": "#1e1b2e", "text_color" :"#1e1b2e" },
-                    "popout": { "opacity": 1.0, "bg_color": "#1e1b2e", "text_color" :"#1e1b2e"},
-                    "llm": { "opacity": 0.70, "bg_color": "#1e1b2e", "text_color" :"#1e1b2e"}
+                    "main": { "opacity": 0.85, "bg_color": "#1e1b2e", "text_color" :"#ebeaf3" },
+                    "popout": { "opacity": 1.0, "bg_color": "#1e1b2e", "text_color" :"#ebe9f1"},
+                    "llm": { "opacity": 0.70, "bg_color": "#1e1b2e", "text_color" :"#efeef1"}
                 }
             }
            

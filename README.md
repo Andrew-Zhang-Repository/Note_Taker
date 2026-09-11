@@ -6,5 +6,6 @@ Note Taking Desktop Application With Privacy Settings
 - Vertical cursor appearing in places it shouldnt
 - Input of more types than general
 - Better placements of buttons
-- Images
+- Images for popout
+- Add better hot keys for tkinter to not clash with prexisting commands
 

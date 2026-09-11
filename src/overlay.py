@@ -12,6 +12,9 @@ from dotenv import load_dotenv
 from llm_overlay import Theme, ResizableWindowMixin, LLMWindow
 from pop_out_overlay import PopOutNote
 from ui_manager import UIManager
+import uuid
+import re
+from PIL import Image, ImageTk, ImageGrab
 
 load_dotenv()
 
@@ -45,6 +48,38 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
         self.move_window()
 
         make_window_invisible(self)
+
+    def handle_paste(self, event=None):
+        try:
+            clipboard_img = ImageGrab.grabclipboard()
+            
+            if clipboard_img and isinstance(clipboard_img, Image.Image):
+                ext = ".png"
+                unique_name = f"img_{uuid.uuid4().hex}{ext}"
+                local_path = os.path.join(self.store.image_dir, unique_name)
+                clipboard_img.save(local_path)
+                
+                clipboard_img.thumbnail((400, 400))
+                photo = ImageTk.PhotoImage(clipboard_img)
+                self.inline_images[local_path] = photo
+                
+                self.editor.image_create(tk.INSERT, image=photo, name=local_path)
+                
+                return "break"
+                
+        except Exception as e:
+            print("Paste error:", e)
+
+
+    def get_rich_text(self):
+        raw_content = ""
+        for key, value, index in self.editor.dump("1.0", tk.END, text=True, image=True):
+            if key == "text":
+                raw_content += value
+            elif key == "image":
+                raw_content += f"[IMG:{value}]"
+                
+        return raw_content.strip()
 
     def move_window(self):
 
@@ -91,6 +126,8 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
 
     def notes_ui_management(self):
         self.store = note_store()
+
+        
         
         settings = self.store.config_settings.get("ui_settings", {}).get("main", {})
                 
@@ -138,10 +175,14 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
 
         
 
-        self.editor = tk.Text(self.content_frame, bg=Theme.BG, fg=Theme.FG, bd=0, wrap=tk.WORD, insertbackground="white")
+        self.editor = tk.Text(self.content_frame, bg=Theme.BG, fg=Theme.FG, bd=0, wrap=tk.WORD, insertbackground="white",undo=True)
         self.editor.bind("<KeyRelease>", self.save_note)
         self._auto_save_timer = None
         self.editor.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        self.editor.bind("<Control-z>", lambda e: (self.editor.edit_undo(), "break")[1])
+        self.inline_images = {}
+        self.editor.bind("<Control-v>", self.handle_paste)
 
 
         text_color = settings.get("text_color", "#1e1e1e")
@@ -177,6 +218,26 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
             self.store.add_note(self.active_type, note_title, "")
             self.refresh_note_list()
 
+    def load_rich_text(self, text_data):
+        self.editor.delete("1.0", tk.END)
+        self.inline_images.clear()
+        
+        parts = re.split(r'(\[IMG:.*?\])', text_data)
+        
+        for part in parts:
+            if part.startswith("[IMG:") and part.endswith("]"):
+                img_path = part[5:-1]
+                
+                if os.path.exists(img_path):
+                    img = Image.open(img_path)
+                    img.thumbnail((400, 400))
+                    photo = ImageTk.PhotoImage(img)
+                    self.inline_images[img_path] = photo
+                    
+                    self.editor.image_create(tk.INSERT, image=photo, name=img_path)
+            else:
+                self.editor.insert(tk.END, part)
+
     def on_note_select(self, event):
         selection = self.note_listbox.curselection()
         if not selection:
@@ -186,11 +247,10 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
         selected_note = self.current_notes[index]
         self.active_note_id = selected_note["id"]
 
-        self.editor.delete("1.0", tk.END)
-        self.editor.insert(tk.END, selected_note["note_body"])
+        self.load_rich_text(selected_note["note_body"])
 
     def save_note(self, event = None):
-
+       
         if self._auto_save_timer is not None:
             self.after_cancel(self._auto_save_timer)
             
@@ -200,7 +260,7 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
         if not self.active_note_id:
             return
 
-        new_text = self.editor.get("1.0", tk.END).strip()
+        new_text = self.get_rich_text()
         self.store.update_note(self.active_note_id, self.active_type, new_text)
 
         for note in self.current_notes:
@@ -208,18 +268,6 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin):
                 note["note_body"] = new_text
                 break
 
-    def perform_auto_save(self):
-
-        if not self.active_note_id:
-            return
-            
-        new_text = self.editor.get("1.0", tk.END).strip()
-        self.store.update_note(self.active_note_id, self.active_type, new_text)
-
-        for note in self.current_notes:
-            if note["id"] == self.active_note_id:
-                note["note_body"] = new_text
-                break
 
     def delete_note(self):
 
