@@ -7,7 +7,7 @@ def make_window_invisible(window):
     if platform.system() != "Windows":
         print("Stealth mode is only supported on Windows.")
         return
-
+    
     try:
         
         window.update_idletasks()

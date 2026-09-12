@@ -3,3 +3,4 @@ python-dotenv
 pyaudiowpatch
 faster-whisper
 torch
+pyinstaller

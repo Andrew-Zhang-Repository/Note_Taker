@@ -42,10 +42,11 @@ class SpeakerRecorder:
 
     def _get_whisper(self):
         if self._whisper is None:
+            model_dir = str(os.path.join(os.getenv('APPDATA'), 'Note_Taker', 'whisper_models'))
             if torch.cuda.is_available():
-                self._whisper = WhisperModel(self.MODEL_SIZE, device="cuda", compute_type="int8")
+                self._whisper = WhisperModel(self.MODEL_SIZE, device="cuda", compute_type="int8", download_root=model_dir)
             else:
-                self._whisper = WhisperModel(self.MODEL_SIZE, device="cpu", compute_type="int8")
+                self._whisper = WhisperModel(self.MODEL_SIZE, device="cpu", compute_type="int8", download_root=model_dir)
         return self._whisper
 
     def _find_loopback_device(self, p):

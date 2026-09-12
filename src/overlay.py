@@ -167,8 +167,11 @@ class OverlayWindow(tk.Toplevel, ResizableWindowMixin, RichTextMixin):
         actions_frame = tk.Frame(self.content_frame, bg=Theme.CONTENT_BG)
         actions_frame.pack(side=tk.BOTTOM, fill=tk.X, pady=(5, 0))
 
+        settings_btn = tk.Button(actions_frame, text="⚙ Settings", bg=Theme.BUTTON_BG, fg=Theme.FG, bd=0, command=self.open_settings, cursor="hand2")
+        settings_btn.pack(side=tk.LEFT)
+
         self.ai_btn = tk.Button(actions_frame, text="Ask AI", bg="#737575", fg=Theme.FG, bd=0, command=self.open_llm_window, cursor="hand2")
-        self.ai_btn.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(0, 5))
+        self.ai_btn.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(5, 5))
 
         delete_pics_btn = tk.Button(actions_frame, text="Clean Images", bg=Theme.BUTTON_BG, fg=Theme.FG, bd=0, command=self.wipe_all_pics, cursor="hand2")
         delete_pics_btn.pack(side=tk.RIGHT)
@@ -286,11 +289,41 @@ class OverlayWindow(tk.Toplevel, ResizableWindowMixin, RichTextMixin):
             self.refresh_note_list()
 
     def _get_model(self):
-        if self.model is None:
-            genai.configure(api_key=os.getenv("key"))
-            self.model_name = os.getenv("default_model") or "AI"
-            self.model = genai.GenerativeModel(self.model_name)
+        api_key = self.store.config.get("api_key")
+        self.model_name = self.store.config.get("default_model", "gemini-3-flash-preview")
+        
+        if not api_key:
+            return None
+            
+        genai.configure(api_key=api_key)
+        self.model = genai.GenerativeModel(self.model_name)
         return self.model
+
+    def open_settings(self):
+        settings_win = tk.Toplevel(self)
+        settings_win.title("Settings")
+        settings_win.geometry("300x150")
+        settings_win.configure(bg=Theme.BG)
+        settings_win.attributes("-topmost", True)
+
+        tk.Label(settings_win, text="Gemini API Key:", bg=Theme.BG, fg=Theme.FG).pack(pady=(10, 0))
+        api_entry = tk.Entry(settings_win, width=30)
+        api_entry.pack(pady=5)
+        api_entry.insert(0, self.store.config.get("api_key", ""))
+
+        tk.Label(settings_win, text="Default Model:", bg=Theme.BG, fg=Theme.FG).pack(pady=(5, 0))
+        model_entry = tk.Entry(settings_win, width=30)
+        model_entry.pack(pady=5)
+        model_entry.insert(0, self.store.config.get("default_model", "gemini-3-flash-preview"))
+
+        def save_settings():
+            self.store.config["api_key"] = api_entry.get().strip()
+            self.store.config["default_model"] = model_entry.get().strip()
+            self.store.atomic_save(self.store.config, self.store.config_path)
+            self.model = None # Force model reload
+            settings_win.destroy()
+
+        tk.Button(settings_win, text="Save", command=save_settings, bg=Theme.BUTTON_BG, fg=Theme.FG, bd=0).pack(pady=10)
 
     def open_llm_window(self):
         if self.llm_win is not None and self.llm_win.winfo_exists():
@@ -298,8 +331,13 @@ class OverlayWindow(tk.Toplevel, ResizableWindowMixin, RichTextMixin):
             self.llm_win.focus_force()
             return
 
-        self._get_model()
-        self.llm_win = LLMWindow(self, self.model,self.store, self.ui_manager, self.model_name)
+        model = self._get_model()
+        if not model:
+            messagebox.showinfo("API Key Required", "Please enter your Gemini API Key to use the AI assistant.")
+            self.open_settings()
+            return
+
+        self.llm_win = LLMWindow(self, self.model, self.store, self.ui_manager, self.model_name)
 
 
     def pop_out_note(self):
