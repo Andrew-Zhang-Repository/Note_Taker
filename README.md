@@ -43,7 +43,7 @@ An app built on python, tkinter to provide you with an invisible note app only v
 
 
 <div align="center">
-  <img src="https://github.com/user-attachments/assets/cffe67c6-ef32-4de3-a401-96452eb7639e" alt="Invisbility On" width="800"/>
+  <img src="https://github.com/user-attachments/assets/a9e2ed7f-5e6d-4ef5-9300-4084cf7a0bbf" alt="Invisbility On" width="800"/>
   <p><i>Figure 5: What it actually looks like.</i></p>
 </div>
 
