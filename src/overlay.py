@@ -20,7 +20,7 @@ load_dotenv()
 
 
 
-class OverlayWindow(tk.Tk, ResizableWindowMixin, RichTextMixin):
+class OverlayWindow(tk.Toplevel, ResizableWindowMixin, RichTextMixin):
 
     # Position margins
     SCREEN_MARGIN = 20
@@ -29,8 +29,8 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin, RichTextMixin):
     # Nudge distance in pixels
     NUDGE_DISTANCE = 20
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, master=None):
+        super().__init__(master)
 
         self._init_drag_state()
         self.title("Overlay")
@@ -39,14 +39,22 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin, RichTextMixin):
 
         self.overrideredirect(True)
         self.attributes("-topmost", True)
+        self.attributes("-toolwindow", True)
 
-        self.bind_all("<Control-Shift-X>", lambda event: self.destroy())
+
+        self.bind_all("<Control-Shift-X>", lambda event: self.quit_app())
 
         self.model = None
         self.model_name = None
         self.llm_win = None
         self.move_window()
         make_window_invisible(self)
+
+    def quit_app(self):
+        if self.master:
+            self.master.destroy()
+        else:
+            self.destroy()
 
     def move_window(self):
 
@@ -75,7 +83,7 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin, RichTextMixin):
 
         self.close_btn = tk.Button(
             self.title_bar, text=" X ", bg=Theme.BAR_BG, fg=Theme.FG, bd=0,
-            activebackground=Theme.BUTTON_BG, activeforeground=Theme.FG, command=self.destroy,
+            activebackground=Theme.BUTTON_BG, activeforeground=Theme.FG, command=self.quit_app,
         )
         self.close_btn.pack(side=tk.RIGHT, padx=4, pady=2)
 
@@ -125,45 +133,50 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin, RichTextMixin):
         self.current_notes = []
         self.active_note_id = None
 
-        top_bar = tk.Frame(self.content_frame, bg=Theme.CONTENT_BG)
-        top_bar.pack(fill=tk.X, pady=5)
+        # Folders Toolbar
+        folders_frame = tk.Frame(self.content_frame, bg=Theme.CONTENT_BG)
+        folders_frame.pack(fill=tk.X, pady=(0, 5))
 
-        self.type_combo = ttk.Combobox(top_bar, values=self.get_available_types(), state="readonly")
+        self.type_combo = ttk.Combobox(folders_frame, values=self.get_available_types(), state="readonly")
         self.type_combo.set(self.active_type)
-        self.type_combo.pack(side=tk.LEFT, padx=5)
+        self.type_combo.pack(side=tk.LEFT, padx=(0, 5), expand=True, fill=tk.X)
         self.type_combo.bind("<<ComboboxSelected>>", self.on_type_change)
 
-        new_btn = tk.Button(top_bar, text="+ New Note", bg=Theme.BAR_BG, fg=Theme.FG, bd=0, command=self.create_new_note,cursor="hand2")
-        new_btn.pack(side=tk.RIGHT, padx=5)
+        new_folder_btn = tk.Button(folders_frame, text="New Folder", bg=Theme.BUTTON_BG, fg=Theme.FG, bd=0, command=self.new_type, cursor="hand2")
+        new_folder_btn.pack(side=tk.RIGHT)
 
+        # Notes Toolbar
+        notes_frame = tk.Frame(self.content_frame, bg=Theme.CONTENT_BG)
+        notes_frame.pack(fill=tk.X, pady=(0, 5))
+
+        new_btn = tk.Button(notes_frame, text="+ New Note", bg=Theme.BAR_BG, fg=Theme.FG, bd=0, command=self.create_new_note, cursor="hand2")
+        new_btn.pack(side=tk.LEFT, padx=(0, 5))
+
+        self.delete_btn = tk.Button(notes_frame, text="Delete Note", bg=Theme.BUTTON_BG, fg=Theme.FG, bd=0, command=self.delete_note, cursor="hand2")
+        self.delete_btn.pack(side=tk.LEFT)
+
+        pop_out_btn = tk.Button(notes_frame, text="Pop Out", bg=Theme.BUTTON_BG, fg=Theme.FG, bd=0, command=self.pop_out_note, cursor="hand2")
+        pop_out_btn.pack(side=tk.RIGHT)
+
+        # Notes Listbox
         self.note_listbox = tk.Listbox(self.content_frame, height=5, bg=Theme.BG, fg=Theme.FG, bd=0)
-        self.note_listbox.pack(fill=tk.X, padx=5, pady=5)
+        self.note_listbox.pack(fill=tk.X, pady=(0, 5))
         self.note_listbox.bind("<<ListboxSelect>>", self.on_note_select)
 
-        self.delete_btn = tk.Button(top_bar, text="Delete", bg=Theme.BUTTON_BG, fg=Theme.FG, bd=0, command=self.delete_note, cursor="hand2")
-        self.delete_btn.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+        # Bottom Actions Toolbar
+        actions_frame = tk.Frame(self.content_frame, bg=Theme.CONTENT_BG)
+        actions_frame.pack(side=tk.BOTTOM, fill=tk.X, pady=(5, 0))
 
-        self.ai_btn = tk.Button(self.content_frame, text="Ask AI", bg="#737575", fg=Theme.FG, bd=0, command=self.open_llm_window, cursor="hand2")
-        self.ai_btn.pack(side=tk.BOTTOM, fill=tk.X, expand=True, padx=(2, 2))
+        self.ai_btn = tk.Button(actions_frame, text="Ask AI", bg="#737575", fg=Theme.FG, bd=0, command=self.open_llm_window, cursor="hand2")
+        self.ai_btn.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(0, 5))
 
-        
+        delete_pics_btn = tk.Button(actions_frame, text="Clean Images", bg=Theme.BUTTON_BG, fg=Theme.FG, bd=0, command=self.wipe_all_pics, cursor="hand2")
+        delete_pics_btn.pack(side=tk.RIGHT)
 
-        self.save_btn = tk.Button(self.content_frame, text="Delete Pictures in Image Folder", bg=Theme.BUTTON_BG, fg=Theme.FG, bd=0, command=self.wipe_all_pics, cursor="hand2")
-        self.save_btn.pack(side=tk.BOTTOM, fill=tk.X, padx=5, pady=5)
-
-
-
-        self.save_btn = tk.Button(self.content_frame, text="Pop Out Note", bg=Theme.BUTTON_BG, fg=Theme.FG, bd=0, command=self.pop_out_note, cursor="hand2")
-        self.save_btn.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
-
-        self.save_btn = tk.Button(self.content_frame, text="New Folder", bg=Theme.BUTTON_BG, fg=Theme.FG, bd=0, command=self.new_type, cursor="hand2")
-        self.save_btn.pack(side=tk.BOTTOM, fill=tk.X, padx=5, pady=5)
-
-        
-
-        self.editor = tk.Text(self.content_frame, bg=Theme.BG, fg=Theme.FG, bd=0, wrap=tk.WORD, insertbackground="white", state = tk.DISABLED)
+        # Text Editor
+        self.editor = tk.Text(self.content_frame, bg=Theme.BG, fg=Theme.FG, bd=0, wrap=tk.WORD, insertbackground="white", state=tk.DISABLED)
         self._auto_save_timer = None
-        self.editor.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        self.editor.pack(fill=tk.BOTH, expand=True)
         self._init_rich_text(self.editor)
 
 
@@ -327,5 +340,7 @@ class OverlayWindow(tk.Tk, ResizableWindowMixin, RichTextMixin):
 
 
 if __name__ == "__main__":
-    app = OverlayWindow()
-    app.mainloop()
+    root = tk.Tk()
+    root.withdraw()
+    app = OverlayWindow(root)
+    root.mainloop()

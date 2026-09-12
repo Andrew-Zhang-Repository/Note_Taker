@@ -239,7 +239,7 @@ class LLMWindow(tk.Toplevel, ResizableWindowMixin):
 
         self.chat_display = tk.Text(
             chat_frame, bg=Theme.CONTENT_BG, fg=Theme.FG, bd=0, wrap=tk.WORD,
-            font=self.FONT, state=tk.NORMAL, padx=6, pady=6, highlightthickness=0,cursor="arrow"
+            font=self.FONT, state=tk.DISABLED, padx=6, pady=6, highlightthickness=0,cursor="arrow"
         )
 
         scrollbar = tk.Scrollbar(
@@ -299,15 +299,19 @@ class LLMWindow(tk.Toplevel, ResizableWindowMixin):
         label = "You" if is_user else self.model_name
 
         stick = self._at_bottom()
+        self.chat_display.configure(state=tk.NORMAL)
         self.chat_display.insert(tk.END, f" {label} \n", label_tag)
         self.chat_display.insert(tk.END, f" {text} \n", body_tag)
         self.chat_display.insert(tk.END, "\n")
+        self.chat_display.configure(state=tk.DISABLED)
         if stick:
             self.chat_display.see(tk.END)
 
     def _show_thinking(self):
         stick = self._at_bottom()
+        self.chat_display.configure(state=tk.NORMAL)
         self.chat_display.insert(tk.END, f"{self.model_name} is thinking...", "thinking")
+        self.chat_display.configure(state=tk.DISABLED)
         if stick:
             self.chat_display.see(tk.END)
 
@@ -315,7 +319,9 @@ class LLMWindow(tk.Toplevel, ResizableWindowMixin):
         ranges = self.chat_display.tag_ranges("thinking")
         if not ranges:
             return
+        self.chat_display.configure(state=tk.NORMAL)
         self.chat_display.delete(ranges[0], ranges[1])
+        self.chat_display.configure(state=tk.DISABLED)
 
     def send_message(self, event=None):
         if self._busy:
@@ -357,7 +363,9 @@ class LLMWindow(tk.Toplevel, ResizableWindowMixin):
 
     def _show_transcribing(self):
         stick = self._at_bottom()
+        self.chat_display.configure(state=tk.NORMAL)
         self.chat_display.insert(tk.END, "Transcribing audio...", "status")
+        self.chat_display.configure(state=tk.DISABLED)
         if stick:
             self.chat_display.see(tk.END)
 
@@ -365,7 +373,9 @@ class LLMWindow(tk.Toplevel, ResizableWindowMixin):
         ranges = self.chat_display.tag_ranges("status")
         if not ranges:
             return
+        self.chat_display.configure(state=tk.NORMAL)
         self.chat_display.delete(ranges[0], ranges[1])
+        self.chat_display.configure(state=tk.DISABLED)
 
     def _poll_speech(self):
         if not self.winfo_exists():
@@ -448,10 +458,14 @@ class LLMWindow(tk.Toplevel, ResizableWindowMixin):
         if not self._stream_started:
             self._stream_started = True
             self._hide_thinking()
+            self.chat_display.configure(state=tk.NORMAL)
             self.chat_display.insert(tk.END, f" {self.model_name} \n", "ai_label")
             self.chat_display.insert(tk.END, f" {text}", "ai_body")
+            self.chat_display.configure(state=tk.DISABLED)
         else:
+            self.chat_display.configure(state=tk.NORMAL)
             self.chat_display.insert(tk.END, text, "ai_body")
+            self.chat_display.configure(state=tk.DISABLED)
 
         if stick:
             self.chat_display.see(tk.END)
@@ -459,8 +473,10 @@ class LLMWindow(tk.Toplevel, ResizableWindowMixin):
     def _end_stream(self):
         if self._stream_started:
             stick = self._at_bottom()
+            self.chat_display.configure(state=tk.NORMAL)
             self.chat_display.insert(tk.END, " \n", "ai_body")
             self.chat_display.insert(tk.END, "\n")
+            self.chat_display.configure(state=tk.DISABLED)
             if stick:
                 self.chat_display.see(tk.END)
         else:

@@ -6,4 +6,5 @@ Note Taking Desktop Application With Privacy Settings
 - Vertical cursor appearing in llm window
 - Better placements of buttons
 - Function to inject key and download fasterwhisper
+- No taskbar icon showing tkinter
 
