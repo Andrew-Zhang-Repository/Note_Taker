@@ -1,6 +1,6 @@
 # NoteTaker (Windows Only)
 ---
-An app built on python, tkinter to provide you with an invisible note app only visible client sided. Has opacity adjustable settings, text colors, and AI integration with recording from speaker source to transcription capabilities. AI integration is using free Gemini API keys that can be inputted in the config user chooses to use this feature if not the rest of the app still can be used. (PACKAGED APP IS AVAILABLE FOR DOWNLOAD IN RELEASES). 
+An app built on python, tkinter to provide you with an invisible note app only visible client sided by using WDA_EXCLUDEFROMCAPTURE = 0x00000011 tag taken from Windows documentation. Has opacity adjustable settings, text colors, and AI integration with recording from speaker source to transcription capabilities. AI integration is using free Gemini API keys that can be inputted in the config user chooses to use this feature if not the rest of the app still can be used. (PACKAGED APP IS AVAILABLE FOR DOWNLOAD IN RELEASES). 
 
 
 
