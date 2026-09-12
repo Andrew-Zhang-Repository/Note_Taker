@@ -1,6 +1,8 @@
 # NoteTaker
 ---
-An app built on python, tkinter to provide you with an invisible note app only visible client sided. Has opacity adjustable settings, text colors, and AI integration with recording from speaker source to transcription capabilities. AI integration is using free Gemini API keys that can be inputted in the config user chooses to use this feature if not the rest of the app still can be used. (PACKAGED APP IS AVAILABLE FOR DOWNLOAD IN RELEASES)
+An app built on python, tkinter to provide you with an invisible note app only visible client sided. Has opacity adjustable settings, text colors, and AI integration with recording from speaker source to transcription capabilities. AI integration is using free Gemini API keys that can be inputted in the config user chooses to use this feature if not the rest of the app still can be used. (PACKAGED APP IS AVAILABLE FOR DOWNLOAD IN RELEASES). App is built f
+
+
 
 
 ### Hotkeys and basic info:
@@ -10,8 +12,12 @@ An app built on python, tkinter to provide you with an invisible note app only v
 - CTRL + b (Change border of current window)
 - CTRL + x (Quit out of all windows)
 - Press settings to input AI model name and API key
+- Clean Images Button (Wipe all Images from directory in which its stored) backspaced/deleted images are gone client sided but still in directory for recall.
+- Pop Out Button (Pops selected note out for easy edits and readability)
+- New Folder (Creates new folder other than general and it can have its own set of notes)
+- Ask AI Button (Pops out the llm window where users can query their selected gemini model)
 
-
+#### To add AI integration capabilities you must supply your own free/paid gemini api keys and model name(https://aistudio.google.com/api-keys?project=gen-lang-client-0047722130) and e.g model: gemini-3-flash-preview
 ---
 
 ### Sample Run Visualization with privacy off (In action this will not be viewable in anything let alone screenshots)
